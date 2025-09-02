@@ -51,11 +51,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
   });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [adminUserToRestore, setAdminUserToRestore] = useState<UserData | null>(null);
 
     useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       // Skip auth state changes when creating a user to prevent admin logout
       if (isCreatingUser) {
+        return;
+      }
+
+      // If we have an admin user to restore and Firebase Auth is null, restore the admin
+      if (!firebaseUser && adminUserToRestore) {
+        setState({
+          user: adminUserToRestore,
+          loading: false,
+          error: null,
+        });
+        setAdminUserToRestore(null);
         return;
       }
 
@@ -109,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unsubscribe;
-  }, [isCreatingUser]);
+  }, [isCreatingUser, adminUserToRestore]);
 
   const login = async (credentials: LoginCredentials) => {
     try {
@@ -159,6 +171,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Store the current admin user info before creating new user
       const currentAdminUser = state.user;
+      const currentAdminEmail = currentAdminUser?.email;
+      
+      if (!currentAdminEmail) {
+        throw new Error('No current user found');
+      }
       
       // Create Firebase Auth user (this will automatically sign in the new user)
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
@@ -196,13 +213,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Sign out the newly created user (they shouldn't be logged in)
       await auth.signOut();
       
-      // Restore the admin user session
+      // Set the admin user to restore when Firebase Auth becomes null
       if (currentAdminUser) {
-        setState({
-          user: currentAdminUser,
-          loading: false,
-          error: null,
-        });
+        setAdminUserToRestore(currentAdminUser);
       }
       
     } catch (error: any) {
