@@ -406,7 +406,7 @@ const AdminDashboard = () => {
                   <div>
                     <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
                     {(() => {
-                      const count = agencyUserCounts[agency.id] ?? (agency as any).userCount ?? 0;
+                      const count = users.filter(u => u.agencyId === agency.id).length;
                       const label = `${count} ${count === 1 ? 'user' : 'users'}`;
                       return (
                         <button
