@@ -15,7 +15,6 @@ import {
   Edit, 
   Trash2, 
   UserPlus, 
-  BuildingPlus,
   Search,
   Filter
 } from "lucide-react";
@@ -425,7 +424,7 @@ const AdminDashboard = () => {
                           onClick={() => setShowCreateAgencyFromUser(true)}
                           className="text-xs"
                         >
-                          <BuildingPlus className="h-3 w-3 mr-1" />
+                          <Building2 className="h-3 w-3 mr-1" />
                           Add Agency
                         </Button>
                       </div>
