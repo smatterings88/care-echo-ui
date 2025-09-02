@@ -27,7 +27,7 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   createUser: (userData: CreateUserData) => Promise<void>;
-  createAgency: (agencyData: CreateAgencyData) => Promise<string>;
+  createAgency: (agencyData: CreateAgencyData) => Promise<AgencyData>;
   updateUser: (uid: string, updates: Partial<UserData>) => Promise<void>;
   getUsersByAgency: (agencyId: string) => Promise<UserData[]>;
   getAgencies: () => Promise<AgencyData[]>;
@@ -149,6 +149,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = async (userData: CreateUserData) => {
     try {
+      // Validate that agency is assigned for all users
+      if (!userData.agencyId) {
+        throw new Error('Agency assignment is required for all users');
+      }
+
       // Set flag to prevent auth state changes during user creation
       setIsCreatingUser(true);
       
@@ -208,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createAgency = async (agencyData: CreateAgencyData): Promise<string> => {
+  const createAgency = async (agencyData: CreateAgencyData): Promise<AgencyData> => {
     try {
       const agencyRef = await addDoc(collection(db, 'agencies'), {
         name: agencyData.name,
@@ -218,7 +223,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userCount: 0,
       });
 
-      return agencyRef.id;
+      // Return the full agency data
+      return {
+        id: agencyRef.id,
+        name: agencyData.name,
+        adminId: agencyData.adminId,
+        createdAt: new Date(),
+        isActive: true,
+        userCount: 0,
+      };
     } catch (error: any) {
       throw new Error(error.message || 'Failed to create agency');
     }

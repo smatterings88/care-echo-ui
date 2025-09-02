@@ -38,6 +38,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateAgency, setShowCreateAgency] = useState(false);
+  const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
 
   // Edit user modal state
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -52,6 +53,7 @@ const AdminDashboard = () => {
     role: 'user',
     agencyId: '',
   });
+  const [createUserError, setCreateUserError] = useState<string>('');
 
   const [agencyForm, setAgencyForm] = useState<CreateAgencyData>({
     name: '',
@@ -93,7 +95,15 @@ const AdminDashboard = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreateUserError('');
+    
     try {
+      // Enforce agency assignment requirement for admins
+      if (user?.role === 'admin' && !userForm.agencyId) {
+        setCreateUserError('Please select an agency for the new user.');
+        return;
+      }
+
       // Enforce agency user constraints: force role=user and agencyId to creator's agency
       const payload: CreateUserData = user?.role === 'agency'
         ? {
@@ -115,8 +125,9 @@ const AdminDashboard = () => {
       });
       setShowCreateUser(false);
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create user:', error);
+      setCreateUserError(error?.message || 'Failed to create user');
     }
   };
 
@@ -130,6 +141,27 @@ const AdminDashboard = () => {
       });
       setShowCreateAgency(false);
       loadData();
+    } catch (error) {
+      console.error('Failed to create agency:', error);
+    }
+  };
+
+  const handleCreateAgencyFromUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newAgency = await createAgency(agencyForm);
+      setAgencyForm({
+        name: '',
+        adminId: user?.uid || '',
+      });
+      setShowCreateAgencyFromUser(false);
+      // Reload agencies to update the dropdown
+      const agenciesData = await getAgencies();
+      setAgencies(agenciesData || []);
+      // Auto-select the newly created agency
+      if (newAgency?.id) {
+        setUserForm(prev => ({ ...prev, agencyId: newAgency.id }));
+      }
     } catch (error) {
       console.error('Failed to create agency:', error);
     }
@@ -326,6 +358,11 @@ const AdminDashboard = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New User</h2>
+              {createUserError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{createUserError}</p>
+                </div>
+              )}
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div>
                   <Label htmlFor="displayName">Full Name</Label>
@@ -379,13 +416,26 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="agencyId">Assign Agency (optional)</Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="agencyId">Assign Agency *</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCreateAgencyFromUser(true)}
+                          className="text-xs"
+                        >
+                          <BuildingPlus className="h-3 w-3 mr-1" />
+                          Add Agency
+                        </Button>
+                      </div>
                       <Select
                         value={userForm.agencyId || 'none'}
                         onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
+                        required
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select an agency (optional)" />
+                          <SelectValue placeholder="Select an agency" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
@@ -404,7 +454,10 @@ const AdminDashboard = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowCreateUser(false)}
+                    onClick={() => {
+                      setShowCreateUser(false);
+                      setCreateUserError('');
+                    }}
                   >
                     Cancel
                   </Button>
@@ -542,6 +595,41 @@ const AdminDashboard = () => {
                     type="button"
                     variant="outline"
                     onClick={() => setShowCreateAgency(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Agency Modal (from User Creation) */}
+        {showCreateAgencyFromUser && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Agency</h2>
+              <p className="text-sm text-neutral-600 mb-4">
+                Create a new agency to assign to the user you're creating.
+              </p>
+              <form onSubmit={handleCreateAgencyFromUser} className="space-y-4">
+                <div>
+                  <Label htmlFor="agencyNameFromUser">Agency Name</Label>
+                  <Input
+                    id="agencyNameFromUser"
+                    value={agencyForm.name}
+                    onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="btn-primary flex-1">
+                    Create Agency
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCreateAgencyFromUser(false)}
                   >
                     Cancel
                   </Button>
