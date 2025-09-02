@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,14 @@ import {
 } from "lucide-react";
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
 
+// Safely convert Firestore Timestamp or Date-like values to Date
+const toDateSafely = (value: any): Date => {
+  if (!value) return new Date(0);
+  if (typeof value?.toDate === "function") return value.toDate();
+  if (value instanceof Date) return value;
+  return new Date(value);
+};
+
 const AdminDashboard = () => {
   const { user, createUser, createAgency, getUsersByAgency, getAgencies, updateUser } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
@@ -28,7 +39,12 @@ const AdminDashboard = () => {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateAgency, setShowCreateAgency] = useState(false);
 
-  // Form states
+  // Edit user modal state
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editForm, setEditForm] = useState<Partial<UserData>>({});
+  const [resetStatus, setResetStatus] = useState<string>("");
+
+  // Create User form state
   const [userForm, setUserForm] = useState<CreateUserData>({
     email: '',
     password: '',
@@ -46,17 +62,30 @@ const AdminDashboard = () => {
     loadData();
   }, []);
 
+  // When opening Create User, prefill restrictions for agency creators
+  useEffect(() => {
+    if (showCreateUser && user?.role === 'agency') {
+      setUserForm(prev => ({
+        ...prev,
+        role: 'user',
+        agencyId: user.agencyId || '',
+      }));
+    }
+  }, [showCreateUser, user]);
+
   const loadData = async () => {
     try {
       setLoading(true);
       const [agenciesData, allUsers] = await Promise.all([
         getAgencies(),
-        getUsersByAgency(''), // Get all users
+        getUsersByAgency(''), // Placeholder: replace with a proper "getAllUsers" if needed
       ]);
-      setAgencies(agenciesData);
-      setUsers(allUsers);
+      setAgencies(agenciesData || []);
+      setUsers(allUsers || []);
     } catch (error) {
       console.error('Failed to load data:', error);
+      setAgencies([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -65,7 +94,18 @@ const AdminDashboard = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUser(userForm);
+      // Enforce agency user constraints: force role=user and agencyId to creator's agency
+      const payload: CreateUserData = user?.role === 'agency'
+        ? {
+            email: userForm.email,
+            password: userForm.password,
+            displayName: userForm.displayName,
+            role: 'user',
+            agencyId: user.agencyId || '',
+          }
+        : userForm;
+
+      await createUser(payload);
       setUserForm({
         email: '',
         password: '',
@@ -95,13 +135,41 @@ const AdminDashboard = () => {
     }
   };
 
+  const openEditUser = (u: UserData) => {
+    setEditingUser(u);
+    setEditForm({
+      displayName: u.displayName,
+      role: u.role,
+      agencyId: u.agencyId,
+      isActive: u.isActive,
+    });
+  };
+
+  const submitEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      await updateUser(editingUser.uid, {
+        displayName: editForm.displayName || editingUser.displayName,
+        role: (editForm.role as UserRole) || editingUser.role,
+        agencyId: editForm.agencyId,
+        isActive: editForm.isActive ?? editingUser.isActive,
+      });
+      setEditingUser(null);
+      setEditForm({});
+      loadData();
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredAgencies = agencies.filter(agency =>
-    agency.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (agency.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -119,9 +187,14 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
       <div className="bg-white border-b border-neutral-300">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-neutral-900">Admin Dashboard</h1>
-          <p className="text-neutral-600 mt-2">Manage users and agencies</p>
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Admin Dashboard</h1>
+            <p className="text-neutral-600 mt-2">Manage users and agencies</p>
+          </div>
+          <Button asChild variant="outline" className="focus-ring">
+            <Link to="/">← Back to landing</Link>
+          </Button>
         </div>
       </div>
 
@@ -183,26 +256,6 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-        {/* Search and Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
-            <Input
-              placeholder={`Search ${activeTab}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button
-            onClick={() => activeTab === 'users' ? setShowCreateUser(true) : setShowCreateAgency(true)}
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create {activeTab === 'users' ? 'User' : 'Agency'}
-          </Button>
-        </div>
-
         {/* Content */}
         {activeTab === 'users' ? (
           <div className="grid gap-4">
@@ -226,7 +279,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => openEditUser(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button variant="outline" size="sm" className="text-error hover:text-error">
@@ -244,9 +297,9 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
-                    <p className="text-neutral-600">{agency.userCount} users</p>
+                    <p className="text-neutral-600">{agency.userCount || 0} users</p>
                     <p className="text-xs text-neutral-500">
-                      Created: {agency.createdAt.toLocaleDateString()}
+                      Created: {toDateSafely(agency.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -260,6 +313,11 @@ const AdminDashboard = () => {
                 </div>
               </Card>
             ))}
+            {filteredAgencies.length === 0 && (
+              <Card className="p-6">
+                <p className="text-neutral-600">No agencies yet. Create one to get started.</p>
+              </Card>
+            )}
           </div>
         )}
 
@@ -298,11 +356,84 @@ const AdminDashboard = () => {
                     required
                   />
                 </div>
+                {user?.role === 'agency' ? (
+                  <div className="text-sm text-neutral-600">
+                    This user will be assigned to your agency automatically.
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="role">Role</Label>
+                      <Select
+                        value={userForm.role}
+                        onValueChange={(value: UserRole) => setUserForm(prev => ({ ...prev, role: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="agency">Agency</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="agencyId">Assign Agency (optional)</Label>
+                      <Select
+                        value={userForm.agencyId || 'none'}
+                        onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an agency (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {agencies.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2">
+                  <Button type="submit" className="btn-primary flex-1">
+                    Create User
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCreateUser(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {editingUser && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-xl font-bold text-neutral-900 mb-4">Edit User</h2>
+              <form onSubmit={submitEditUser} className="space-y-4">
                 <div>
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="editName">Full Name</Label>
+                  <Input
+                    id="editName"
+                    value={editForm.displayName || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editRole">Role</Label>
                   <Select
-                    value={userForm.role}
-                    onValueChange={(value: UserRole) => setUserForm(prev => ({ ...prev, role: value }))}
+                    value={(editForm.role as UserRole) || editingUser.role}
+                    onValueChange={(value: UserRole) => setEditForm(prev => ({ ...prev, role: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -314,14 +445,71 @@ const AdminDashboard = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="editAgency">Agency</Label>
+                  <Select
+                    value={(editForm.agencyId ?? editingUser.agencyId) ?? 'none'}
+                    onValueChange={(value: string) =>
+                      setEditForm(prev => ({ ...prev, agencyId: value === 'none' ? undefined : value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an agency (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {agencies.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={editingUser.email} disabled />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="editActive">Active</Label>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        className={`px-3 py-2 rounded-md text-sm border ${editForm.isActive ?? editingUser.isActive ? 'bg-accent-teal text-white border-accent-teal' : 'bg-white text-neutral-700 border-neutral-300'}`}
+                        onClick={() => setEditForm(prev => ({ ...prev, isActive: !(prev.isActive ?? editingUser.isActive) }))}
+                      >
+                        {(editForm.isActive ?? editingUser.isActive) ? 'Active' : 'Inactive'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          setResetStatus("Sending...");
+                          await sendPasswordResetEmail(auth, editingUser.email);
+                          setResetStatus("Password reset email sent.");
+                        } catch (err: any) {
+                          setResetStatus(err?.message || "Failed to send reset email");
+                        }
+                      }}
+                    >
+                      Send Password Reset
+                    </Button>
+                    {resetStatus && (
+                      <p className="text-xs text-neutral-600 mt-2">{resetStatus}</p>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="btn-primary flex-1">
-                    Create User
+                    Save Changes
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowCreateUser(false)}
+                    onClick={() => { setEditingUser(null); setEditForm({}); }}
                   >
                     Cancel
                   </Button>

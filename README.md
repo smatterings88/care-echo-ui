@@ -71,3 +71,30 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Deployment (Vercel)
+
+This app is ready for Vercel.
+
+1. Push to GitHub (done). Ensure `main` has latest.
+2. In Vercel, import the repo and select the `main` branch.
+3. Framework Preset: "Vite"
+4. Build Command: `npm run build`
+5. Output Directory: `dist`
+6. Install Command: `npm install`
+7. Add Environment Variables (Production):
+   - VITE_FIREBASE_API_KEY
+   - VITE_FIREBASE_AUTH_DOMAIN
+   - VITE_FIREBASE_PROJECT_ID
+   - VITE_FIREBASE_STORAGE_BUCKET
+   - VITE_FIREBASE_MESSAGING_SENDER_ID
+   - VITE_FIREBASE_APP_ID
+   - VITE_FIREBASE_MEASUREMENT_ID
+
+Client-side routing
+- `vercel.json` is included to route all paths to `/index.html`.
+
+After first deploy
+- Ensure Firestore rules are set (see FIRESTORE_RULES_SETUP.md)
+- Confirm auth providers enabled in Firebase Console
+- Set allowed domains in Firebase Auth (add your Vercel domain)

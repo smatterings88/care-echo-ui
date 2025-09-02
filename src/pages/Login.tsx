@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,16 +51,27 @@ const Login = () => {
       await login(formData);
       navigate("/");
     } catch (error: any) {
-      // Error is handled by the auth context
       console.error("Login error:", error);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (formErrors[field as keyof typeof formErrors]) {
       setFormErrors(prev => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+      toast.error("Enter a valid email to reset your password");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      toast.success("Password reset email sent");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send reset email");
     }
   };
 
@@ -127,6 +141,15 @@ const Login = () => {
               {formErrors.password && (
                 <p className="text-error text-sm">{formErrors.password}</p>
               )}
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  className="text-sm text-accent-teal hover:text-brand-red-600 transition-colors focus-ring"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             {/* Error Message */}
