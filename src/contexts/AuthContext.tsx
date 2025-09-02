@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { 
   User as FirebaseUser,
   signInWithEmailAndPassword,
@@ -53,16 +53,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [adminUserToRestore, setAdminUserToRestore] = useState<UserData | null>(null);
+  const isCreatingUserRef = useRef(false);
 
     useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      console.log('Auth state changed:', { 
+        firebaseUser: firebaseUser?.email, 
+        isCreatingUser, 
+        isCreatingUserRef: isCreatingUserRef.current,
+        adminUserToRestore: adminUserToRestore?.email 
+      });
+      
       // Skip auth state changes when creating a user to prevent admin logout
-      if (isCreatingUser) {
+      if (isCreatingUser || isCreatingUserRef.current) {
+        console.log('Skipping auth state change - creating user');
         return;
       }
 
       // If we have an admin user to restore and Firebase Auth is null, restore the admin
       if (!firebaseUser && adminUserToRestore) {
+        console.log('Restoring admin user:', adminUserToRestore.email);
         setState({
           user: adminUserToRestore,
           loading: false,
@@ -168,11 +178,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Set flag to prevent auth state changes during user creation
+      console.log('Setting isCreatingUser to true');
       setIsCreatingUser(true);
+      isCreatingUserRef.current = true;
       
       // Store the current admin user info before creating new user
       const currentAdminUser = state.user;
       const currentAdminEmail = currentAdminUser?.email;
+      
+      console.log('Current admin user:', currentAdminEmail);
       
       if (!currentAdminEmail) {
         throw new Error('No current user found');
@@ -212,10 +226,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Sign out the newly created user (they shouldn't be logged in)
+      console.log('Signing out newly created user');
       await auth.signOut();
       
       // Set the admin user to restore when Firebase Auth becomes null
       if (currentAdminUser) {
+        console.log('Setting admin user to restore:', currentAdminUser.email);
         setAdminUserToRestore(currentAdminUser);
       }
       
@@ -223,7 +239,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(error.message || 'Failed to create user');
     } finally {
       // Re-enable auth state changes
+      console.log('Setting isCreatingUser to false');
       setIsCreatingUser(false);
+      isCreatingUserRef.current = false;
     }
   };
 
