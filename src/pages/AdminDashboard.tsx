@@ -287,6 +287,27 @@ const AdminDashboard = () => {
           </button>
         </div>
 
+        {/* Action Buttons */}
+        <div className="flex gap-4 mb-6">
+          {activeTab === 'users' ? (
+            <Button
+              onClick={() => setShowCreateUser(true)}
+              className="btn-primary"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create User
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setShowCreateAgency(true)}
+              className="btn-primary"
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              Create Agency
+            </Button>
+          )}
+        </div>
+
         {/* Content */}
         {activeTab === 'users' ? (
           <div className="grid gap-4">
