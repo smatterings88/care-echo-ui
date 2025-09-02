@@ -409,11 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await deleteDoc(doc(db, 'users', uid));
       // Optimistically update local state
-      setState(prev => ({
-        ...prev,
-        // if we ever supported deleting self, ensure we clear state; guard to avoid deleting current admin accidentally
-        user: prev.user?.uid === uid ? prev.user : prev.user,
-      }));
+      setState(prev => prev); // no local change to current user
     } catch (error: any) {
       throw new Error(error.message || 'Failed to delete user');
     }

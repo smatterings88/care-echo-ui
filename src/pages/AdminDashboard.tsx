@@ -8,6 +8,17 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Users, 
   Building2, 
@@ -334,22 +345,43 @@ const AdminDashboard = () => {
                     <Button variant="outline" size="sm" onClick={() => openEditUser(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-error hover:text-error"
-                      onClick={async () => {
-                        if (!confirm(`Delete user ${user.displayName}? This cannot be undone.`)) return;
-                        try {
-                          await deleteUser(user.uid);
-                          loadData();
-                        } catch (err: any) {
-                          alert(err?.message || 'Failed to delete user');
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-error hover:text-error"
+                          disabled={user.uid === (auth.currentUser?.uid || '')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {user.displayName}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action permanently removes the user record. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={async () => {
+                              if (user.uid === (auth.currentUser?.uid || '')) return;
+                              try {
+                                await deleteUser(user.uid);
+                                await loadData();
+                              } catch (err: any) {
+                                console.error(err);
+                              }
+                            }}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </Card>
