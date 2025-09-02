@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import heroImage from "@/assets/care-echo-hero.jpg";
 
@@ -40,7 +41,7 @@ const Index = () => {
         </div>
       </section>
 
-
+      <Footer />
       <FloatingActionButton />
     </div>
   );
