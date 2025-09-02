@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +51,7 @@ const AdminDashboard = () => {
   const [showCreateAgency, setShowCreateAgency] = useState(false);
   const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
   const [agencyUserCounts, setAgencyUserCounts] = useState<Record<string, number>>({});
+  const [openAgencyUsersFor, setOpenAgencyUsersFor] = useState<string | null>(null);
 
   // Edit user modal state
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -405,8 +407,15 @@ const AdminDashboard = () => {
                     <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
                     {(() => {
                       const count = agencyUserCounts[agency.id] ?? (agency as any).userCount ?? 0;
+                      const label = `${count} ${count === 1 ? 'user' : 'users'}`;
                       return (
-                        <p className="text-neutral-600">{count} {count === 1 ? 'user' : 'users'}</p>
+                        <button
+                          type="button"
+                          className="text-neutral-600 underline-offset-2 hover:underline focus:outline-none"
+                          onClick={() => setOpenAgencyUsersFor(agency.id)}
+                        >
+                          {label}
+                        </button>
                       );
                     })()}
                     <p className="text-xs text-neutral-500">
@@ -547,6 +556,44 @@ const AdminDashboard = () => {
             </Card>
           </div>
         )}
+
+        {/* Agency Users Modal */}
+        <Dialog open={!!openAgencyUsersFor} onOpenChange={(v) => !v && setOpenAgencyUsersFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Agency Users</DialogTitle>
+              <DialogDescription>
+                List of users assigned to this agency.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[50vh] overflow-auto">
+              {users.filter(u => u.agencyId === openAgencyUsersFor).length === 0 ? (
+                <p className="text-neutral-600 text-sm">No users in this agency yet.</p>
+              ) : (
+                users
+                  .filter(u => u.agencyId === openAgencyUsersFor)
+                  .map(u => (
+                    <div key={u.uid} className="flex items-center justify-between rounded-md border border-neutral-200 p-2">
+                      <div>
+                        <p className="font-medium text-neutral-900">{u.displayName}</p>
+                        <p className="text-neutral-600 text-sm">{u.email}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        u.role === 'admin' ? 'bg-brand-red-600 text-white' :
+                        u.role === 'agency' ? 'bg-accent-teal text-white' :
+                        'bg-neutral-200 text-neutral-700'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </div>
+                  ))
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenAgencyUsersFor(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit User Modal */}
         {editingUser && (
