@@ -8,35 +8,61 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Apple-inspired healthcare color palette */
+    --background: 0 0% 98%;
+    --foreground: 215 25% 27%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 27%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 27%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Healthcare blue as primary */
+    --primary: 212 95% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 212 95% 65%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Subtle healthcare green as secondary */
+    --secondary: 142 71% 95%;
+    --secondary-foreground: 142 71% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 57%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 212 95% 95%;
+    --accent-foreground: 212 95% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 212 95% 68%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Healthcare-specific colors */
+    --healthcare-green: 142 71% 58%;
+    --healthcare-blue: 212 95% 68%;
+    --healthcare-mint: 152 68% 85%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
+    /* Apple-inspired gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(212 95% 68%) 0%, hsl(212 95% 78%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(142 71% 95%) 0%, hsl(142 71% 88%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(212 95% 68%) 0%, hsl(142 71% 58%) 100%);
+    
+    /* Premium shadows */
+    --shadow-card: 0 2px 12px -4px hsl(215 25% 27% / 0.08);
+    --shadow-card-hover: 0 8px 25px -8px hsl(215 25% 27% / 0.15);
+    --shadow-button: 0 2px 8px -2px hsl(212 95% 68% / 0.3);
+    --shadow-floating: 0 10px 40px -10px hsl(215 25% 27% / 0.1);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +126,36 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Apple-inspired component classes */
+  .card-interactive {
+    @apply bg-card border border-border rounded-xl transition-all duration-300 hover:shadow-[0_8px_25px_-8px_hsl(215_25%_27%_/_0.15)] hover:scale-[1.02] cursor-pointer;
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-[hsl(212_95%_78%)] text-primary-foreground rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:shadow-[0_2px_8px_-2px_hsl(212_95%_68%_/_0.3)] hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-to-r from-secondary to-[hsl(142_71%_88%)] text-secondary-foreground rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  .survey-card {
+    @apply bg-card rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_8px_25px_-8px_hsl(215_25%_27%_/_0.15)] hover:scale-[1.02] cursor-pointer;
+    box-shadow: var(--shadow-card);
+  }
+
+  .floating-action {
+    @apply fixed bottom-6 right-6 bg-gradient-to-r from-primary to-[hsl(212_95%_78%)] text-white rounded-full p-4 transition-all duration-300 hover:scale-110 active:scale-95;
+    box-shadow: var(--shadow-floating);
   }
 }
