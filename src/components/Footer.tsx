@@ -8,12 +8,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-brand-red-600 to-accent-teal rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CE</span>
-              </div>
-              <h3 className="text-lg font-semibold text-neutral-900">Care Echo</h3>
-            </div>
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/logo.png" 
+                alt="Care Echo Logo" 
+                className="w-[10rem] h-12 object-contain"
+              />
+            </Link>
             <p className="text-neutral-600 text-sm leading-relaxed">
               Supporting healthcare professionals with compassionate survey tools designed for wellness and insight.
             </p>
@@ -84,7 +85,16 @@ const Footer = () => {
         {/* Bottom Section */}
         <div className="border-t border-neutral-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <p className="text-sm text-neutral-600">
-            © 2024 Care Echo. Built with compassion for healthcare heroes.
+            © {new Date().getFullYear()} Care Echo. Built with compassion for healthcare heroes by{" "}
+            <a 
+              href="https://zenwareai.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-accent-teal hover:text-brand-red-600 transition-colors focus-ring"
+            >
+              ZenwareAI
+            </a>
+            .
           </p>
           <div className="flex items-center space-x-6">
             <a href="#" className="text-neutral-600 hover:text-brand-red-600 transition-colors text-sm focus-ring">

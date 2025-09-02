@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FloatingActionButton from "@/components/FloatingActionButton";
-import heroImage from "@/assets/care-echo-hero.jpg";
 
 const Index = () => {
   return (
@@ -11,31 +10,37 @@ const Index = () => {
       
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-brand-red-600/5 via-accent-teal/10 to-neutral-50 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-white/90 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/80 to-transparent z-10" />
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-20"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: `url(https://storage.googleapis.com/msgsndr/JBLl8rdfV29DRcGjQ7Rl/media/68b6a6705201562e145a62aa.png)` }}
         />
         <div className="relative z-20 container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6 animate-fade-in">
-              Healthcare Insights,
-              <span className="bg-gradient-to-r from-brand-red-600 to-brand-red-700 bg-clip-text text-transparent">
-                {" "}Simplified
-              </span>
+              Your CNAs Are Quitting.
             </h1>
-            <p className="text-xl text-neutral-600 mb-8 animate-slide-up">
-              Streamline your healthcare surveys with intelligent analytics and beautiful, mobile-first design that puts patient care first.
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-6 animate-fade-in">
+              You Just Don't Know It Yet.
+            </h2>
+            <p className="text-xl text-neutral-700 mb-4 animate-slide-up">
+              CareEcho spots burnout before it becomes a $5K replacement cost.
+            </p>
+            <p className="text-lg text-neutral-600 mb-6 animate-slide-up">
+              60-second check-ins. Anonymous alerts. Early intervention.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
               <Link to="/survey">
                 <button className="btn-primary">
-                  Start Shift Check-In
+                  START SHIFT CHECK-IN
                 </button>
               </Link>
               <button className="btn-secondary">
-                View Analytics
+                VIEW ANALYTICS
               </button>
+            </div>
+            <div className="mt-8 space-y-2 animate-slide-up">
+              <p className="text-neutral-900 font-semibold">Stop the turnover. Save the money. Protect your people.</p>
             </div>
           </div>
         </div>
