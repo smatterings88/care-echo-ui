@@ -36,7 +36,7 @@ const Index = () => {
                 </button>
               </Link>
               <button className="btn-secondary">
-                VIEW ANALYTICS
+                END SHIFT CHECK-IN
               </button>
             </div>
             <div className="mt-8 space-y-2 animate-slide-up">
