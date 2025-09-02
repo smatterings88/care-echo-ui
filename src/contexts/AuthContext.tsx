@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [adminUserToRestore, setAdminUserToRestore] = useState<UserData | null>(null);
   const isCreatingUserRef = useRef(false);
   const shouldIgnoreAuthChanges = useRef(false);
+  const authListenerRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -133,6 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Store the unsubscribe function
+    authListenerRef.current = unsubscribe;
+    
     return unsubscribe;
   }, [isCreatingUser, adminUserToRestore]);
 
@@ -194,6 +198,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsCreatingUser(true);
       isCreatingUserRef.current = true;
       shouldIgnoreAuthChanges.current = true;
+      
+      // Temporarily unsubscribe from auth state changes
+      if (authListenerRef.current) {
+        console.log('Temporarily unsubscribing from auth state changes');
+        authListenerRef.current();
+        authListenerRef.current = null;
+      }
       
       // Create Firebase Auth user (this will automatically sign in the new user)
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
@@ -263,6 +274,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsCreatingUser(false);
       isCreatingUserRef.current = false;
       shouldIgnoreAuthChanges.current = false;
+      
+      // Resubscribe to auth state changes
+      console.log('Resubscribing to auth state changes');
+      const newUnsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+        console.log('Auth state changed (after resubscribe):', { 
+          firebaseUser: firebaseUser?.email, 
+          isCreatingUser, 
+          isCreatingUserRef: isCreatingUserRef.current,
+          shouldIgnoreAuthChanges: shouldIgnoreAuthChanges.current,
+          adminUserToRestore: adminUserToRestore?.email 
+        });
+        
+        // Skip auth state changes when creating a user to prevent admin logout
+        if (isCreatingUser || isCreatingUserRef.current || shouldIgnoreAuthChanges.current) {
+          console.log('Skipping auth state change - creating user or ignoring changes');
+          return;
+        }
+
+        // If we have an admin user to restore and Firebase Auth is null, restore the admin
+        if (!firebaseUser && adminUserToRestore) {
+          console.log('Restoring admin user:', adminUserToRestore.email);
+          setState({
+            user: adminUserToRestore,
+            loading: false,
+            error: null,
+          });
+          setAdminUserToRestore(null);
+          return;
+        }
+
+        if (firebaseUser) {
+          try {
+            // Try to get user data from Firestore first
+            let userData: UserData | null = null;
+            try {
+              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+              if (userDoc.exists()) {
+                userData = userDoc.data() as UserData;
+              }
+            } catch (firestoreError) {
+              console.log('Firestore error, creating temporary user data');
+            }
+
+            if (!userData) {
+              // Create a temporary user object if Firestore data doesn't exist
+              // Default to 'user' role for new users (not admin)
+              userData = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'User',
+                role: 'user', // Default to user role for new users
+                createdAt: new Date(),
+                lastLoginAt: new Date(),
+                isActive: true,
+              };
+            }
+
+            setState({
+              user: userData,
+              loading: false,
+              error: null,
+            });
+          } catch (error) {
+            console.error('Auth error:', error);
+            setState({
+              user: null,
+              loading: false,
+              error: 'Failed to load user data',
+            });
+          }
+        } else {
+          setState({
+            user: null,
+            loading: false,
+            error: null,
+          });
+        }
+      });
+      
+      authListenerRef.current = newUnsubscribe;
     }
   };
 
