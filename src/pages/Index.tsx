@@ -1,4 +1,5 @@
 import { BarChart3, Users, FileText, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SurveyCard from "@/components/SurveyCard";
 import StatsCard from "@/components/StatsCard";
@@ -64,9 +65,11 @@ const Index = () => {
               Streamline your healthcare surveys with intelligent analytics and beautiful, mobile-first design that puts patient care first.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
-              <button className="btn-primary">
-                Create New Survey
-              </button>
+              <Link to="/survey">
+                <button className="btn-primary">
+                  Start Shift Check-In
+                </button>
+              </Link>
               <button className="btn-secondary">
                 View Analytics
               </button>
