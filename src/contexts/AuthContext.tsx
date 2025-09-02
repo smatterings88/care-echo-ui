@@ -30,6 +30,7 @@ interface AuthContextType extends AuthState {
   createAgency: (agencyData: CreateAgencyData) => Promise<AgencyData>;
   updateUser: (uid: string, updates: Partial<UserData>) => Promise<void>;
   getUsersByAgency: (agencyId: string) => Promise<UserData[]>;
+  getAllUsers: () => Promise<UserData[]>;
   getAgencies: () => Promise<AgencyData[]>;
   hasPermission: (requiredRole: UserRole) => boolean;
 }
@@ -276,6 +277,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getAllUsers = async (): Promise<UserData[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      return querySnapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data(),
+      } as UserData));
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to fetch all users');
+    }
+  };
+
   const getAgencies = async (): Promise<AgencyData[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, 'agencies'));
@@ -308,6 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     createAgency,
     updateUser,
     getUsersByAgency,
+    getAllUsers,
     getAgencies,
     hasPermission,
   };

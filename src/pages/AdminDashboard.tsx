@@ -29,7 +29,7 @@ const toDateSafely = (value: any): Date => {
 };
 
 const AdminDashboard = () => {
-  const { user, createUser, createAgency, getUsersByAgency, getAgencies, updateUser } = useAuth();
+  const { user, createUser, createAgency, getUsersByAgency, getAllUsers, getAgencies, updateUser } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [agencies, setAgencies] = useState<AgencyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
       setLoading(true);
       const [agenciesData, allUsers] = await Promise.all([
         getAgencies(),
-        getUsersByAgency(''), // Placeholder: replace with a proper "getAllUsers" if needed
+        getAllUsers(),
       ]);
       setAgencies(agenciesData || []);
       setUsers(allUsers || []);
