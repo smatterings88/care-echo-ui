@@ -171,6 +171,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createUser = async (userData: CreateUserData) => {
+    // Store the current admin user info before creating new user
+    const currentAdminUser = state.user;
+    const currentAdminEmail = currentAdminUser?.email;
+    
+    console.log('Current admin user:', currentAdminEmail);
+    
+    if (!currentAdminEmail) {
+      throw new Error('No current user found');
+    }
+
     try {
       // Validate that agency is assigned for all users except admins
       if (!userData.agencyId && userData.role !== 'admin') {
@@ -182,16 +192,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsCreatingUser(true);
       isCreatingUserRef.current = true;
       
-      // Store the current admin user info before creating new user
-      const currentAdminUser = state.user;
-      const currentAdminEmail = currentAdminUser?.email;
-      
-      console.log('Current admin user:', currentAdminEmail);
-      
-      if (!currentAdminEmail) {
-        throw new Error('No current user found');
-      }
-      
       // Create Firebase Auth user (this will automatically sign in the new user)
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
       
@@ -200,44 +200,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: userData.displayName,
       });
 
-      // Create user document in Firestore
-      const userDoc: UserData = {
-        uid: userCredential.user.uid,
-        email: userData.email,
-        displayName: userData.displayName,
-        role: userData.role,
-        agencyId: userData.agencyId,
-        createdAt: new Date(),
-        lastLoginAt: new Date(),
-        isActive: true,
-      };
+      try {
+        // Create user document in Firestore
+        const userDoc: UserData = {
+          uid: userCredential.user.uid,
+          email: userData.email,
+          displayName: userData.displayName,
+          role: userData.role,
+          agencyId: userData.agencyId,
+          createdAt: new Date(),
+          lastLoginAt: new Date(),
+          isActive: true,
+        };
 
-      await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
+        await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
-      // If user is associated with an agency, update agency user count
-      if (userData.agencyId) {
-        const agencyRef = doc(db, 'agencies', userData.agencyId);
-        const agencyDoc = await getDoc(agencyRef);
-        if (agencyDoc.exists()) {
-          await updateDoc(agencyRef, {
-            userCount: (agencyDoc.data()?.userCount || 0) + 1,
-          });
+        // If user is associated with an agency, update agency user count
+        if (userData.agencyId) {
+          const agencyRef = doc(db, 'agencies', userData.agencyId);
+          const agencyDoc = await getDoc(agencyRef);
+          if (agencyDoc.exists()) {
+            await updateDoc(agencyRef, {
+              userCount: (agencyDoc.data()?.userCount || 0) + 1,
+            });
+          }
         }
+      } catch (firestoreError) {
+        console.error('Firestore error during user creation:', firestoreError);
+        // Even if Firestore fails, we need to clean up the auth state
+        // The user was created in Firebase Auth but not in Firestore
+        throw new Error('Failed to create user in database. Please check Firestore permissions.');
       }
 
-      // Sign out the newly created user (they shouldn't be logged in)
-      console.log('Signing out newly created user');
-      await auth.signOut();
-      
-      // Set the admin user to restore when Firebase Auth becomes null
-      if (currentAdminUser) {
-        console.log('Setting admin user to restore:', currentAdminUser.email);
-        setAdminUserToRestore(currentAdminUser);
-      }
-      
     } catch (error: any) {
+      console.error('Error during user creation:', error);
       throw new Error(error.message || 'Failed to create user');
     } finally {
+      // Always clean up auth state, even if there was an error
+      try {
+        // Sign out the newly created user (they shouldn't be logged in)
+        console.log('Signing out newly created user');
+        await auth.signOut();
+        
+        // Set the admin user to restore when Firebase Auth becomes null
+        if (currentAdminUser) {
+          console.log('Setting admin user to restore:', currentAdminUser.email);
+          setAdminUserToRestore(currentAdminUser);
+        }
+      } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
+      }
+      
       // Re-enable auth state changes
       console.log('Setting isCreatingUser to false');
       setIsCreatingUser(false);
