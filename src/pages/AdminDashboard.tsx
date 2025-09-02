@@ -49,6 +49,7 @@ const AdminDashboard = () => {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateAgency, setShowCreateAgency] = useState(false);
   const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
+  const [agencyUserCounts, setAgencyUserCounts] = useState<Record<string, number>>({});
 
   // Edit user modal state
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -94,6 +95,14 @@ const AdminDashboard = () => {
       ]);
       setAgencies(agenciesData || []);
       setUsers(allUsers || []);
+
+      // Derive accurate user counts per agency from fresh user list
+      const counts: Record<string, number> = {};
+      (allUsers || []).forEach((u) => {
+        const aId = (u as any).agencyId;
+        if (aId) counts[aId] = (counts[aId] || 0) + 1;
+      });
+      setAgencyUserCounts(counts);
     } catch (error) {
       console.error('Failed to load data:', error);
       setAgencies([]);
@@ -394,7 +403,12 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
-                    <p className="text-neutral-600">{agency.userCount || 0} users</p>
+                    {(() => {
+                      const count = agencyUserCounts[agency.id] ?? (agency as any).userCount ?? 0;
+                      return (
+                        <p className="text-neutral-600">{count} {count === 1 ? 'user' : 'users'}</p>
+                      );
+                    })()}
                     <p className="text-xs text-neutral-500">
                       Created: {toDateSafely(agency.createdAt).toLocaleDateString()}
                     </p>
