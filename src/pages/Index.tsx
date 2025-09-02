@@ -1,47 +1,9 @@
-import { BarChart3, Users, FileText, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import SurveyCard from "@/components/SurveyCard";
-import StatsCard from "@/components/StatsCard";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import heroImage from "@/assets/care-echo-hero.jpg";
 
 const Index = () => {
-  const surveys = [
-    {
-      title: "Patient Satisfaction Survey Q4",
-      description: "Comprehensive survey to measure patient satisfaction across all departments including emergency care, surgery, and outpatient services.",
-      responseCount: 84,
-      status: "active" as const,
-      createdAt: "Dec 1, 2024",
-      category: "Patient Care"
-    },
-    {
-      title: "Staff Wellness Check",
-      description: "Monthly wellness assessment for healthcare staff focusing on burnout prevention and workplace satisfaction metrics.",
-      responseCount: 42,
-      status: "active" as const,
-      createdAt: "Nov 28, 2024",
-      category: "Staff Wellness"
-    },
-    {
-      title: "Equipment Safety Audit",
-      description: "Quarterly safety audit for medical equipment and facility infrastructure to ensure compliance with healthcare standards.",
-      responseCount: 156,
-      status: "completed" as const,
-      createdAt: "Nov 15, 2024",
-      category: "Safety"
-    },
-    {
-      title: "New Treatment Protocol Feedback",
-      description: "Gathering feedback on recently implemented treatment protocols from medical staff and department heads.",
-      responseCount: 23,
-      status: "draft" as const,
-      createdAt: "Dec 2, 2024",
-      category: "Medical"
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -78,64 +40,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title="Total Surveys"
-            value="24"
-            change="+12% from last month"
-            changeType="positive"
-            icon={FileText}
-          />
-          <StatsCard
-            title="Active Responses"
-            value="1,247"
-            change="+8% from last week"
-            changeType="positive"
-            icon={Users}
-          />
-          <StatsCard
-            title="Completion Rate"
-            value="92.4%"
-            change="+2.1% improvement"
-            changeType="positive"
-            icon={TrendingUp}
-          />
-          <StatsCard
-            title="Insights Generated"
-            value="156"
-            change="New this month"
-            changeType="neutral"
-            icon={BarChart3}
-          />
-        </div>
-      </section>
-
-      {/* Surveys Section */}
-      <section className="container mx-auto px-4 pb-24">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Recent Surveys</h2>
-            <p className="text-muted-foreground">Manage and track your healthcare surveys</p>
-          </div>
-          <button className="btn-primary hidden md:block">
-            Create Survey
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {surveys.map((survey, index) => (
-            <div 
-              key={survey.title}
-              className="animate-slide-up"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <SurveyCard {...survey} />
-            </div>
-          ))}
-        </div>
-      </section>
 
       <FloatingActionButton />
     </div>
