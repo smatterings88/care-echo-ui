@@ -29,7 +29,7 @@ const toDateSafely = (value: any): Date => {
 };
 
 const AdminDashboard = () => {
-  const { user, createUser, createAgency, getUsersByAgency, getAllUsers, getAgencies, updateUser } = useAuth();
+  const { user, createUser, createAgency, getUsersByAgency, getAllUsers, getAgencies, updateUser, deleteUser } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [agencies, setAgencies] = useState<AgencyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -334,7 +334,20 @@ const AdminDashboard = () => {
                     <Button variant="outline" size="sm" onClick={() => openEditUser(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" className="text-error hover:text-error">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-error hover:text-error"
+                      onClick={async () => {
+                        if (!confirm(`Delete user ${user.displayName}? This cannot be undone.`)) return;
+                        try {
+                          await deleteUser(user.uid);
+                          loadData();
+                        } catch (err: any) {
+                          alert(err?.message || 'Failed to delete user');
+                        }
+                      }}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

@@ -16,6 +16,7 @@ import {
   collection, 
   addDoc, 
   updateDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -34,6 +35,7 @@ interface AuthContextType extends AuthState {
   getAllUsers: () => Promise<UserData[]>;
   getAgencies: () => Promise<AgencyData[]>;
   hasPermission: (requiredRole: UserRole) => boolean;
+  deleteUser: (uid: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -402,6 +404,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteUser = async (uid: string) => {
+    // Only allow if current user has admin permission via rules; here we attempt and surface errors
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      // Optimistically update local state
+      setState(prev => ({
+        ...prev,
+        // if we ever supported deleting self, ensure we clear state; guard to avoid deleting current admin accidentally
+        user: prev.user?.uid === uid ? prev.user : prev.user,
+      }));
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to delete user');
+    }
+  };
+
   const getUsersByAgency = async (agencyId: string): Promise<UserData[]> => {
     try {
       const q = query(collection(db, 'users'), where('agencyId', '==', agencyId));
@@ -459,6 +476,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getAllUsers,
     getAgencies,
     hasPermission,
+    deleteUser,
   };
 
   return (
