@@ -162,9 +162,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = async (userData: CreateUserData) => {
     try {
-      // Validate that agency is assigned for all users
-      if (!userData.agencyId) {
-        throw new Error('Agency assignment is required for all users');
+      // Validate that agency is assigned for all users except admins
+      if (!userData.agencyId && userData.role !== 'admin') {
+        throw new Error('Agency assignment is required for all users except admins');
       }
 
       // Set flag to prevent auth state changes during user creation

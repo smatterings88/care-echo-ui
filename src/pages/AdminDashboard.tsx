@@ -97,8 +97,8 @@ const AdminDashboard = () => {
     setCreateUserError('');
     
     try {
-      // Enforce agency assignment requirement for admins
-      if (user?.role === 'admin' && !userForm.agencyId) {
+      // Enforce agency assignment requirement for non-admin users
+      if (userForm.role !== 'admin' && !userForm.agencyId) {
         setCreateUserError('Please select an agency for the new user.');
         return;
       }
@@ -437,7 +437,9 @@ const AdminDashboard = () => {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="agencyId">Assign Agency *</Label>
+                        <Label htmlFor="agencyId">
+                          Assign Agency {userForm.role !== 'admin' ? '*' : '(optional)'}
+                        </Label>
                         <Button
                           type="button"
                           variant="outline"
@@ -452,7 +454,7 @@ const AdminDashboard = () => {
                       <Select
                         value={userForm.agencyId || 'none'}
                         onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
-                        required
+                        required={userForm.role !== 'admin'}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select an agency" />
