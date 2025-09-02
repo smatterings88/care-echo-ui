@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [adminUserToRestore, setAdminUserToRestore] = useState<UserData | null>(null);
   const isCreatingUserRef = useRef(false);
-  const authUnsubscribeRef = useRef<(() => void) | null>(null);
+  const shouldIgnoreAuthChanges = useRef(false);
 
     useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
@@ -62,12 +62,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         firebaseUser: firebaseUser?.email, 
         isCreatingUser, 
         isCreatingUserRef: isCreatingUserRef.current,
+        shouldIgnoreAuthChanges: shouldIgnoreAuthChanges.current,
         adminUserToRestore: adminUserToRestore?.email 
       });
       
       // Skip auth state changes when creating a user to prevent admin logout
-      if (isCreatingUser || isCreatingUserRef.current) {
-        console.log('Skipping auth state change - creating user');
+      if (isCreatingUser || isCreatingUserRef.current || shouldIgnoreAuthChanges.current) {
+        console.log('Skipping auth state change - creating user or ignoring changes');
         return;
       }
 
@@ -132,9 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Store the unsubscribe function for later use
-    authUnsubscribeRef.current = unsubscribe;
-    
     return unsubscribe;
   }, [isCreatingUser, adminUserToRestore]);
 
@@ -191,17 +189,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Agency assignment is required for all users except admins');
       }
 
-      // Set flag to prevent auth state changes during user creation
-      console.log('Setting isCreatingUser to true');
+      // Set flags to prevent auth state changes during user creation
+      console.log('Setting isCreatingUser to true and ignoring auth changes');
       setIsCreatingUser(true);
       isCreatingUserRef.current = true;
-      
-      // Temporarily unsubscribe from auth state changes
-      if (authUnsubscribeRef.current) {
-        console.log('Temporarily unsubscribing from auth state changes');
-        authUnsubscribeRef.current();
-        authUnsubscribeRef.current = null;
-      }
+      shouldIgnoreAuthChanges.current = true;
       
       // Create Firebase Auth user (this will automatically sign in the new user)
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
@@ -267,88 +259,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Re-enable auth state changes
-      console.log('Setting isCreatingUser to false');
+      console.log('Setting isCreatingUser to false and re-enabling auth changes');
       setIsCreatingUser(false);
       isCreatingUserRef.current = false;
-      
-      // Resubscribe to auth state changes
-      console.log('Resubscribing to auth state changes');
-      const newUnsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-        console.log('Auth state changed (after resubscribe):', { 
-          firebaseUser: firebaseUser?.email, 
-          isCreatingUser, 
-          isCreatingUserRef: isCreatingUserRef.current,
-          adminUserToRestore: adminUserToRestore?.email 
-        });
-        
-        // Skip auth state changes when creating a user to prevent admin logout
-        if (isCreatingUser || isCreatingUserRef.current) {
-          console.log('Skipping auth state change - creating user');
-          return;
-        }
-
-        // If we have an admin user to restore and Firebase Auth is null, restore the admin
-        if (!firebaseUser && adminUserToRestore) {
-          console.log('Restoring admin user:', adminUserToRestore.email);
-          setState({
-            user: adminUserToRestore,
-            loading: false,
-            error: null,
-          });
-          setAdminUserToRestore(null);
-          return;
-        }
-
-        if (firebaseUser) {
-          try {
-            // Try to get user data from Firestore first
-            let userData: UserData | null = null;
-            try {
-              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-              if (userDoc.exists()) {
-                userData = userDoc.data() as UserData;
-              }
-            } catch (firestoreError) {
-              console.log('Firestore error, creating temporary user data');
-            }
-
-            if (!userData) {
-              // Create a temporary user object if Firestore data doesn't exist
-              // Default to 'user' role for new users (not admin)
-              userData = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                displayName: firebaseUser.displayName || 'User',
-                role: 'user', // Default to user role for new users
-                createdAt: new Date(),
-                lastLoginAt: new Date(),
-                isActive: true,
-              };
-            }
-
-            setState({
-              user: userData,
-              loading: false,
-              error: null,
-            });
-          } catch (error) {
-            console.error('Auth error:', error);
-            setState({
-              user: null,
-              loading: false,
-              error: 'Failed to load user data',
-            });
-          }
-        } else {
-          setState({
-            user: null,
-            loading: false,
-            error: null,
-          });
-        }
-      });
-      
-      authUnsubscribeRef.current = newUnsubscribe;
+      shouldIgnoreAuthChanges.current = false;
     }
   };
 
