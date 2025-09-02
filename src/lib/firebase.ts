@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -12,11 +12,21 @@ const firebaseConfig = {
   measurementId: "G-EQSRV42GJB"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize (or reuse) default app
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Create an isolated secondary app for privileged actions (e.g., create users)
+// Using a separate auth instance prevents switching the current session
+let secondaryAppInstance: ReturnType<typeof initializeApp> | null = null;
+export const getSecondaryApp = () => {
+  if (!secondaryAppInstance) {
+    secondaryAppInstance = initializeApp(firebaseConfig, 'secondary');
+  }
+  return secondaryAppInstance;
+};
 
 export default app;

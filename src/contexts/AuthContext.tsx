@@ -6,7 +6,8 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   updateProfile,
-  connectAuthEmulator
+  connectAuthEmulator,
+  getAuth
 } from 'firebase/auth';
 import { 
   doc, 
@@ -20,7 +21,7 @@ import {
   getDocs,
   serverTimestamp
 } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, getSecondaryApp } from '@/lib/firebase';
 import { UserData, UserRole, AuthState, LoginCredentials, CreateUserData, CreateAgencyData, AgencyData } from '@/types/auth';
 
 interface AuthContextType extends AuthState {
@@ -206,8 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authListenerRef.current = null;
       }
       
-      // Create Firebase Auth user (this will automatically sign in the new user)
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+      // Use secondary auth instance so current session is not affected
+      const secondaryAuth = getAuth(getSecondaryApp());
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, userData.email, userData.password);
       
       // Update display name in Firebase Auth
       await updateProfile(userCredential.user, {
@@ -253,8 +255,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Always clean up auth state, even if there was an error
       try {
         // Sign out the newly created user (they shouldn't be logged in)
-        console.log('Signing out newly created user');
-        await auth.signOut();
+        console.log('Signing out newly created user (secondary auth)');
+        try {
+          const secondary = getAuth(getSecondaryApp());
+          await signOut(secondary);
+        } catch {}
         
         // Manually restore the admin session
         if (currentAdminUser) {
