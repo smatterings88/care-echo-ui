@@ -78,24 +78,31 @@ const Survey = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-neutral-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-neutral-300 bg-white/90 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold text-foreground">Shift Check-In</h1>
-          <div className="text-sm text-muted-foreground">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <img 
+              src="/logo.png" 
+              alt="Care Echo Logo" 
+              className="w-[10rem] h-12 object-contain"
+            />
+          </div>
+          <h1 className="text-lg font-semibold text-neutral-900">Shift Check-In</h1>
+          <div className="text-sm text-neutral-700">
             {currentStep}/4
           </div>
         </div>
       </header>
 
       {/* Progress Bar */}
-      <div className="w-full bg-muted h-1">
+      <div className="w-full bg-neutral-300 h-1">
         <div 
-          className="bg-gradient-to-r from-primary to-healthcare-green h-1 transition-all duration-500"
+          className="bg-gradient-to-r from-brand-red-600 to-accent-teal h-1 transition-all duration-500"
           style={{ width: `${(currentStep / 4) * 100}%` }}
         />
       </div>
@@ -105,10 +112,10 @@ const Survey = () => {
         {currentStep === 1 && (
           <Card className="p-8 animate-fade-in">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-3">
+              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
                 How was your shift today?
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-neutral-700">
                 Take a moment to check in with yourself
               </p>
             </div>
@@ -118,7 +125,7 @@ const Survey = () => {
                 <Button
                   key={mood.value}
                   variant="outline"
-                  className="h-16 text-lg justify-start space-x-4 hover:bg-primary/5 hover:border-primary transition-all duration-300"
+                  className="h-16 text-lg justify-start space-x-4 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300"
                   onClick={() => handleMoodSelect(mood.value)}
                 >
                   <span className="text-2xl">{mood.emoji}</span>
@@ -133,10 +140,10 @@ const Survey = () => {
         {currentStep === 2 && (
           <Card className="p-8 animate-fade-in">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-3">
+              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
                 What drained you most today?
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-neutral-700">
                 Understanding your stress helps us support you better
               </p>
             </div>
@@ -146,7 +153,7 @@ const Survey = () => {
                 <Button
                   key={source}
                   variant="outline"
-                  className="h-14 text-left justify-start px-6 hover:bg-primary/5 hover:border-primary transition-all duration-300"
+                  className="h-14 text-left justify-start px-6 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300"
                   onClick={() => handleStressSelect(source)}
                 >
                   <span className="font-medium">{source}</span>
@@ -180,10 +187,10 @@ const Survey = () => {
         {currentStep === 3 && (
           <Card className="p-8 animate-fade-in">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-3">
+              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
                 What gave you energy or support today?
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-neutral-700">
                 Optional - but we'd love to hear about the good moments
               </p>
             </div>
@@ -208,7 +215,7 @@ const Survey = () => {
                 <Button 
                   variant="ghost"
                   onClick={handleNext}
-                  className="text-muted-foreground"
+                  className="text-neutral-700"
                 >
                   Skip this step
                 </Button>
@@ -221,22 +228,22 @@ const Survey = () => {
         {currentStep === 4 && (
           <Card className="p-8 animate-fade-in">
             <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-primary to-healthcare-green rounded-full flex items-center justify-center mx-auto animate-bounce-gentle">
+              <div className="w-16 h-16 bg-gradient-to-r from-brand-red-600 to-accent-teal rounded-full flex items-center justify-center mx-auto animate-bounce-gentle">
                 <span className="text-2xl">💙</span>
               </div>
               
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">
+                <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                   Thank you for checking in
                 </h2>
                 
-                <div className="bg-gradient-to-r from-primary/5 to-healthcare-green/5 rounded-xl p-6 mb-6">
-                  <p className="text-foreground text-lg leading-relaxed">
+                <div className="bg-gradient-to-r from-brand-red-600/5 to-accent-teal/5 rounded-xl p-6 mb-6">
+                  <p className="text-neutral-900 text-lg leading-relaxed">
                     {getReflection()}
                   </p>
                 </div>
 
-                <p className="text-muted-foreground mb-6">
+                <p className="text-neutral-700 mb-6">
                   Your responses help us understand how to better support our healthcare heroes.
                 </p>
               </div>

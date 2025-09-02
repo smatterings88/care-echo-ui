@@ -8,115 +8,115 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Apple-inspired healthcare color palette */
-    --background: 0 0% 98%;
-    --foreground: 215 25% 27%;
+    /* CareEcho Design System - Light Mode with Higher Contrast */
+    --background: 0 0% 98%; /* lighter background for better contrast */
+    --foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card: 0 0% 100%; /* pure white cards */
+    --card-foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover: 0 0% 100%; /* pure white popovers */
+    --popover-foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
 
-    /* Healthcare blue as primary */
-    --primary: 212 95% 68%;
+    /* CareEcho Brand Red as Primary */
+    --primary: 0 68% 54%; /* brand-red-600 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 212 95% 65%;
+    --primary-hover: 0 68% 47%; /* brand-red-700 */
 
-    /* Subtle healthcare green as secondary */
-    --secondary: 142 71% 95%;
-    --secondary-foreground: 142 71% 25%;
+    /* Neutral Secondary with Higher Contrast */
+    --secondary: 0 0% 96%; /* very light gray */
+    --secondary-foreground: 0 0% 25%; /* neutral-700 for better contrast */
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 57%;
+    --muted: 0 0% 96%; /* very light gray */
+    --muted-foreground: 0 0% 25%; /* neutral-700 for better contrast */
 
-    --accent: 212 95% 95%;
-    --accent-foreground: 212 95% 35%;
+    --accent: 180 45% 70%; /* accent-teal */
+    --accent-foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 68% 45%; /* error */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 212 95% 68%;
+    --border: 0 0% 85%; /* neutral-300 for more visible borders */
+    --input: 0 0% 85%; /* neutral-300 for more visible inputs */
+    --ring: 180 45% 70%; /* accent-teal */
 
     --radius: 0.75rem;
 
-    /* Healthcare-specific colors */
+    /* CareEcho Semantic Colors */
+    --success: 120 61% 34%;
+    --warning: 38 92% 50%;
+    --error: 0 68% 45%;
+    --info: 217 91% 60%;
+
+    /* Healthcare-specific colors (legacy) */
     --healthcare-green: 142 71% 58%;
     --healthcare-blue: 212 95% 68%;
     --healthcare-mint: 152 68% 85%;
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
 
-    /* Apple-inspired gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(212 95% 68%) 0%, hsl(212 95% 78%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(142 71% 95%) 0%, hsl(142 71% 88%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(212 95% 68%) 0%, hsl(142 71% 58%) 100%);
+    /* CareEcho Gradients */
+    --gradient-primary: linear-gradient(135deg, #BA373B 0%, #DE4246 100%);
+    --gradient-secondary: linear-gradient(135deg, #F5F5F4 0%, #E7E5E4 100%);
+    --gradient-hero: linear-gradient(135deg, #BA373B 0%, #6DC8C5 100%);
     
-    /* Premium shadows */
-    --shadow-card: 0 2px 12px -4px hsl(215 25% 27% / 0.08);
-    --shadow-card-hover: 0 8px 25px -8px hsl(215 25% 27% / 0.15);
-    --shadow-button: 0 2px 8px -2px hsl(212 95% 68% / 0.3);
-    --shadow-floating: 0 10px 40px -10px hsl(215 25% 27% / 0.1);
+    /* CareEcho Shadows */
+    --shadow-card: 0 2px 12px -4px rgba(9, 11, 11, 0.12);
+    --shadow-card-hover: 0 8px 25px -8px rgba(9, 11, 11, 0.2);
+    --shadow-button: 0 2px 8px -2px rgba(186, 55, 59, 0.3);
+    --shadow-floating: 0 10px 40px -10px rgba(9, 11, 11, 0.15);
 
     /* Smooth transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 98%; /* lighter background */
+    --sidebar-foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
+    --sidebar-primary: 0 0% 4%; /* neutral-900 */
+    --sidebar-primary-foreground: 0 0% 98%; /* lighter background */
+    --sidebar-accent: 0 0% 96%; /* very light gray */
+    --sidebar-accent-foreground: 0 0% 4%; /* neutral-900 for maximum contrast */
+    --sidebar-border: 0 0% 85%; /* neutral-300 for more visible borders */
+    --sidebar-ring: 180 45% 70%; /* accent-teal */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* CareEcho Design System - Dark Mode */
+    --background: 0 0% 4%; /* neutral-900 */
+    --foreground: 0 0% 95%; /* neutral-50 */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 14%; /* neutral-800 */
+    --card-foreground: 0 0% 95%; /* neutral-50 */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 14%; /* neutral-800 */
+    --popover-foreground: 0 0% 95%; /* neutral-50 */
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 68% 54%; /* brand-red-600 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 0 68% 47%; /* brand-red-700 */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 25%; /* neutral-700 */
+    --secondary-foreground: 0 0% 95%; /* neutral-50 */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 25%; /* neutral-700 */
+    --muted-foreground: 0 0% 64%; /* neutral-400 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 180 45% 70%; /* accent-teal */
+    --accent-foreground: 0 0% 4%; /* neutral-900 */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 68% 45%; /* error */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 0 0% 25%; /* neutral-700 */
+    --input: 0 0% 25%; /* neutral-700 */
+    --ring: 180 45% 70%; /* accent-teal */
+
+    --sidebar-background: 0 0% 4%; /* neutral-900 */
+    --sidebar-foreground: 0 0% 95%; /* neutral-50 */
+    --sidebar-primary: 0 0% 95%; /* neutral-50 */
+    --sidebar-primary-foreground: 0 0% 4%; /* neutral-900 */
+    --sidebar-accent: 0 0% 14%; /* neutral-800 */
+    --sidebar-accent-foreground: 0 0% 95%; /* neutral-50 */
+    --sidebar-border: 0 0% 25%; /* neutral-700 */
+    --sidebar-ring: 180 45% 70%; /* accent-teal */
   }
 }
 
@@ -131,31 +131,62 @@ All colors MUST be HSL.
 }
 
 @layer components {
-  /* Apple-inspired component classes */
+  /* CareEcho Component Classes */
   .card-interactive {
-    @apply bg-card border border-border rounded-xl transition-all duration-300 hover:shadow-[0_8px_25px_-8px_hsl(215_25%_27%_/_0.15)] hover:scale-[1.02] cursor-pointer;
+    @apply bg-white border border-neutral-300 rounded-xl transition-all duration-300 hover:shadow-[0_8px_25px_-8px_rgba(9,11,11,0.2)] hover:scale-[1.02] cursor-pointer;
     box-shadow: var(--shadow-card);
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-primary to-[hsl(212_95%_78%)] text-primary-foreground rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:shadow-[0_2px_8px_-2px_hsl(212_95%_68%_/_0.3)] hover:scale-[1.02] active:scale-[0.98];
+    @apply bg-brand-red-600 text-white rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:bg-brand-red-700 hover:shadow-[0_2px_8px_-2px_rgba(186,55,59,0.3)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply bg-gradient-to-r from-secondary to-[hsl(142_71%_88%)] text-secondary-foreground rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98];
+    @apply bg-white text-neutral-900 rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:bg-neutral-100 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2 border border-neutral-300;
+  }
+
+  .btn-disabled {
+    @apply bg-neutral-300 text-neutral-600 rounded-xl px-6 py-3 font-medium cursor-not-allowed;
   }
 
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-md border border-white/20;
+    @apply bg-white/90 backdrop-blur-md border border-neutral-300/30;
   }
 
   .survey-card {
-    @apply bg-card rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_8px_25px_-8px_hsl(215_25%_27%_/_0.15)] hover:scale-[1.02] cursor-pointer;
+    @apply bg-white rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_8px_25px_-8px_rgba(9,11,11,0.2)] hover:scale-[1.02] cursor-pointer border border-neutral-300;
     box-shadow: var(--shadow-card);
   }
 
   .floating-action {
-    @apply fixed bottom-6 right-6 bg-gradient-to-r from-primary to-[hsl(212_95%_78%)] text-white rounded-full p-4 transition-all duration-300 hover:scale-110 active:scale-95;
+    @apply fixed bottom-6 right-6 bg-brand-red-600 text-white rounded-full p-4 transition-all duration-300 hover:bg-brand-red-700 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
     box-shadow: var(--shadow-floating);
+  }
+
+  /* CareEcho Link Styles */
+  .link-primary {
+    @apply text-accent-teal hover:underline focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2 rounded;
+  }
+
+  /* CareEcho Alert Styles */
+  .alert-success {
+    @apply bg-success/10 border-l-4 border-success text-neutral-800 p-4 rounded-r-lg;
+  }
+
+  .alert-warning {
+    @apply bg-warning/10 border-l-4 border-warning text-neutral-800 p-4 rounded-r-lg;
+  }
+
+  .alert-error {
+    @apply bg-error/10 border-l-4 border-error text-neutral-800 p-4 rounded-r-lg;
+  }
+
+  .alert-info {
+    @apply bg-info/10 border-l-4 border-info text-neutral-800 p-4 rounded-r-lg;
+  }
+
+  /* CareEcho Focus Styles */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
   }
 }

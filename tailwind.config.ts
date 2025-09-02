@@ -19,6 +19,37 @@ export default {
 		},
 		extend: {
 			colors: {
+				// CareEcho Brand Colors
+				brand: {
+					red: {
+						500: '#DE4246',
+						600: '#BA373B',
+						700: '#9A2F32', // Darkened for hover states
+					},
+				},
+				accent: {
+					teal: '#6DC8C5',
+					DEFAULT: '#6DC8C5',
+				},
+				// CareEcho Neutral Colors
+				neutral: {
+					50: '#F3ECE9',
+					100: '#D9D3D0',
+					200: '#C1BEBC',
+					300: '#AAA7A6',
+					400: '#918F8F',
+					500: '#7A7979',
+					600: '#5C5B5B',
+					700: '#403F3F',
+					800: '#232424',
+					900: '#090B0B',
+				},
+				// CareEcho Semantic Colors
+				success: '#2E7D32',
+				warning: '#F59E0B',
+				error: '#C62828',
+				info: '#2563EB',
+				// Legacy shadcn/ui compatibility
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -63,14 +94,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Healthcare-specific colors
+				// Healthcare-specific colors (legacy)
 				healthcare: {
 					green: 'hsl(var(--healthcare-green))',
 					blue: 'hsl(var(--healthcare-blue))',
 					mint: 'hsl(var(--healthcare-mint))'
 				},
-				success: 'hsl(var(--success))',
-				warning: 'hsl(var(--warning))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
