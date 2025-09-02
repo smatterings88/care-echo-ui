@@ -35,7 +35,9 @@ const Index = () => {
                   START SHIFT CHECK-IN
                 </button>
               </Link>
-              <button className="btn-secondary">
+              <button
+                className="rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2"
+              >
                 END SHIFT CHECK-IN
               </button>
             </div>
