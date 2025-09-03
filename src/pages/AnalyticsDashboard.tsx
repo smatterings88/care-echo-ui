@@ -44,17 +44,35 @@ import { Bar, BarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as R
 const AnalyticsDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, getSurveyAnalytics, getSurveyResponses } = useAuth();
+  const { user, getSurveyAnalytics, getSurveyResponses, getAgencies } = useAuth();
   const [analytics, setAnalytics] = useState<SurveyAnalytics | null>(null);
   const [recentResponses, setRecentResponses] = useState<SurveyResponse[]>([]);
+  const [agencies, setAgencies] = useState<Array<{id: string, name: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timeFilter, setTimeFilter] = useState("7d");
   const [surveyTypeFilter, setSurveyTypeFilter] = useState("all");
+  const [agencyFilter, setAgencyFilter] = useState("all");
 
   useEffect(() => {
     loadAnalytics();
-  }, [timeFilter, surveyTypeFilter]);
+  }, [timeFilter, surveyTypeFilter, agencyFilter]);
+
+  useEffect(() => {
+    // Load agencies for admin users
+    if (user?.role === 'admin') {
+      loadAgencies();
+    }
+  }, [user?.role]);
+
+  const loadAgencies = async () => {
+    try {
+      const agenciesData = await getAgencies();
+      setAgencies(agenciesData || []);
+    } catch (error) {
+      console.error('Error loading agencies:', error);
+    }
+  };
 
   const loadAnalytics = async () => {
     try {
@@ -92,9 +110,13 @@ const AnalyticsDashboard = () => {
         filters.surveyType = surveyTypeFilter as 'start' | 'end';
       }
       
-      // Agency filter (if user is agency role, only show their agency data)
+      // Agency filter
       if (user?.role === 'agency' && user?.agencyId) {
+        // Agency users can only see their own agency data
         filters.agencyId = user.agencyId;
+      } else if (user?.role === 'admin' && agencyFilter !== "all") {
+        // Admin users can filter by specific agency
+        filters.agencyId = agencyFilter;
       }
       
       // Get analytics data with filters
@@ -368,6 +390,21 @@ const AnalyticsDashboard = () => {
               <SelectItem value="end">End shift</SelectItem>
             </SelectContent>
           </Select>
+          {user?.role === 'admin' && (
+            <Select value={agencyFilter} onValueChange={setAgencyFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All agencies" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All agencies</SelectItem>
+                {agencies.map((agency) => (
+                  <SelectItem key={agency.id} value={agency.id}>
+                    {agency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Overview Cards */}
