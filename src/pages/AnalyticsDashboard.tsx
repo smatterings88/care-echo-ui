@@ -22,7 +22,12 @@ import {
   AlertTriangle,
   Smile,
   Meh,
-  Frown
+  Frown,
+  MessageSquare,
+  Coffee,
+  Users as UsersIcon,
+  Heart as HeartIcon,
+  Activity as ActivityIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -118,6 +123,93 @@ const AnalyticsDashboard = () => {
     return colors[concern] || "#6b7280";
   };
 
+  // Support response analysis functions
+  const analyzeWordFrequency = (responses: SurveyResponse[]) => {
+    const supportResponses = responses
+      .filter(r => r.responses.support && r.responses.support.trim().length > 0)
+      .map(r => r.responses.support);
+    
+    const words = supportResponses
+      .flatMap(r => r.toLowerCase().split(/\s+/))
+      .map(word => word.replace(/[^\w]/g, ''))
+      .filter(word => word.length > 2 && !['the', 'and', 'for', 'with', 'that', 'this', 'they', 'have', 'from', 'their', 'would', 'there', 'could', 'been', 'were', 'will', 'more', 'when', 'said', 'each', 'which', 'time', 'them', 'some', 'make', 'into', 'than', 'first', 'been', 'its', 'after', 'most', 'other', 'many', 'then', 'these', 'so', 'people', 'may', 'well', 'only', 'very', 'just', 'now', 'over', 'think', 'also', 'around', 'another', 'even', 'through', 'back', 'years', 'where', 'much', 'before', 'mean', 'those', 'right', 'your', 'good', 'should', 'because', 'each', 'any', 'three', 'state', 'never', 'become', 'between', 'really', 'something', 'another', 'rather', 'though', 'against', 'always', 'something', 'every', 'often', 'together', 'shall', 'might', 'while', 'another', 'enough', 'almost', 'since', 'never', 'every', 'always', 'sometimes', 'usually', 'often', 'rarely', 'never'].includes(word));
+    
+    const wordFreq: Record<string, number> = {};
+    words.forEach(word => {
+      wordFreq[word] = (wordFreq[word] || 0) + 1;
+    });
+    
+    // Sort by frequency and take top 20
+    return Object.entries(wordFreq)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 20)
+      .map(([word, count]) => ({ word, count }));
+  };
+
+  const categorizeSupportResponses = (responses: SurveyResponse[]) => {
+    const categories = {
+      "Social Support": 0,
+      "Self-Care": 0,
+      "Patient Interaction": 0,
+      "Spiritual": 0,
+      "Physical": 0,
+      "Other": 0
+    };
+    
+    const supportResponses = responses
+      .filter(r => r.responses.support && r.responses.support.trim().length > 0)
+      .map(r => r.responses.support);
+    
+    supportResponses.forEach(response => {
+      const lower = response.toLowerCase();
+      if (lower.includes('colleague') || lower.includes('team') || lower.includes('coworker') || lower.includes('friend') || lower.includes('family') || lower.includes('support')) {
+        categories["Social Support"]++;
+      } else if (lower.includes('coffee') || lower.includes('break') || lower.includes('rest') || lower.includes('music') || lower.includes('food') || lower.includes('lunch') || lower.includes('dinner')) {
+        categories["Self-Care"]++;
+      } else if (lower.includes('patient') || lower.includes('resident') || lower.includes('smile') || lower.includes('thank') || lower.includes('appreciate') || lower.includes('grateful')) {
+        categories["Patient Interaction"]++;
+      } else if (lower.includes('prayer') || lower.includes('meditation') || lower.includes('faith') || lower.includes('god') || lower.includes('spiritual') || lower.includes('blessed')) {
+        categories["Spiritual"]++;
+      } else if (lower.includes('exercise') || lower.includes('walk') || lower.includes('workout') || lower.includes('run') || lower.includes('gym') || lower.includes('yoga')) {
+        categories["Physical"]++;
+      } else {
+        categories["Other"]++;
+      }
+    });
+    
+    return Object.entries(categories)
+      .filter(([, count]) => count > 0)
+      .map(([category, count]) => ({
+        category,
+        count,
+        color: getSupportCategoryColor(category)
+      }));
+  };
+
+  const getSupportCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      "Social Support": "#3b82f6", // blue-500
+      "Self-Care": "#10b981", // green-500
+      "Patient Interaction": "#8b5cf6", // violet-500
+      "Spiritual": "#f59e0b", // amber-500
+      "Physical": "#ef4444", // red-500
+      "Other": "#6b7280" // gray-500
+    };
+    return colors[category] || "#6b7280";
+  };
+
+  const getSupportCategoryIcon = (category: string) => {
+    const icons: Record<string, any> = {
+      "Social Support": UsersIcon,
+      "Self-Care": Coffee,
+      "Patient Interaction": HeartIcon,
+      "Spiritual": HeartIcon,
+      "Physical": ActivityIcon,
+      "Other": MessageSquare
+    };
+    return icons[category] || MessageSquare;
+  };
+
   // Prepare data for charts
   const moodChartData = analytics?.responsesByMood ? 
     Object.entries(analytics.responsesByMood).map(([mood, count]) => ({
@@ -140,6 +232,10 @@ const AnalyticsDashboard = () => {
       responses: trend.count,
       avgMood: trend.averageMood
     })) : [];
+
+  // Support analysis data
+  const supportWordData = analyzeWordFrequency(recentResponses);
+  const supportCategoryData = categorizeSupportResponses(recentResponses);
 
   const filteredResponses = recentResponses.filter(response => {
     if (surveyTypeFilter !== "all" && response.surveyType !== surveyTypeFilter) {
@@ -378,6 +474,84 @@ const AnalyticsDashboard = () => {
           </Card>
         </div>
 
+        {/* Support & Energy Analysis Section */}
+        {supportWordData.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Support Word Cloud */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-neutral-900">Support Themes</h3>
+                <MessageSquare className="h-5 w-5 text-neutral-600" />
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {supportWordData.map((item, index) => {
+                  const maxCount = Math.max(...supportWordData.map(d => d.count));
+                  const fontSize = Math.max(14, Math.min(32, (item.count / maxCount) * 24 + 12));
+                  const opacity = Math.max(0.3, item.count / maxCount);
+                  
+                  return (
+                    <span 
+                      key={item.word}
+                      className="px-3 py-1 rounded-full text-white font-medium cursor-pointer hover:scale-105 transition-transform"
+                      style={{
+                        fontSize: `${fontSize}px`,
+                        backgroundColor: `rgba(59, 130, 246, ${opacity})`,
+                        boxShadow: `0 2px 4px rgba(59, 130, 246, ${opacity * 0.3})`
+                      }}
+                      title={`${item.word}: ${item.count} mentions`}
+                    >
+                      {item.word}
+                    </span>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-neutral-500 text-center mt-4">
+                Word size indicates frequency of mention in support responses
+              </p>
+            </Card>
+
+            {/* Support Categories Chart */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-neutral-900">Support Sources</h3>
+                <BarChart3 className="h-5 w-5 text-neutral-600" />
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={supportCategoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="category" stroke="#6b7280" fontSize={12} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const IconComponent = getSupportCategoryIcon(data.category);
+                          return (
+                            <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <IconComponent className="h-4 w-4" />
+                                <span className="font-semibold">{data.category}</span>
+                              </div>
+                              <p className="text-sm text-neutral-600">Responses: <span className="font-semibold">{data.count}</span></p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {supportCategoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Trends Chart */}
         {trendChartData.length > 0 && (
           <Card className="p-6 mb-8">
@@ -391,22 +565,22 @@ const AnalyticsDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
                   <YAxis stroke="#6b7280" fontSize={12} />
-                                     <Tooltip 
-                     content={({ active, payload, label }) => {
-                       if (active && payload && payload.length) {
-                         const avgMoodValue = payload[1]?.value;
-                         const avgMoodFormatted = typeof avgMoodValue === 'number' ? avgMoodValue.toFixed(1) : avgMoodValue;
-                         return (
-                           <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-                             <p className="font-semibold text-sm">{label}</p>
-                             <p className="text-sm text-neutral-600">Responses: <span className="font-semibold">{payload[0].value}</span></p>
-                             <p className="text-sm text-neutral-600">Avg Mood: <span className="font-semibold">{avgMoodFormatted}</span></p>
-                           </div>
-                         );
-                       }
-                       return null;
-                     }}
-                   />
+                  <Tooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const avgMoodValue = payload[1]?.value;
+                        const avgMoodFormatted = typeof avgMoodValue === 'number' ? avgMoodValue.toFixed(1) : avgMoodValue;
+                        return (
+                          <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
+                            <p className="font-semibold text-sm">{label}</p>
+                            <p className="text-sm text-neutral-600">Responses: <span className="font-semibold">{payload[0].value}</span></p>
+                            <p className="text-sm text-neutral-600">Avg Mood: <span className="font-semibold">{avgMoodFormatted}</span></p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="responses" 
