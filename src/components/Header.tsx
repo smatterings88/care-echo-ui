@@ -1,4 +1,4 @@
-import { Bell, User, Menu, LogOut, Settings } from "lucide-react";
+import { User, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -31,20 +31,35 @@ const Header = () => {
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/" className="text-neutral-900 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-            Dashboard
-          </Link>
-          <Link to="/survey" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-            Quick Check-In
-          </Link>
-          {hasPermission('admin') && (
-            <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-              Admin
-            </Link>
-          )}
-          {hasPermission('agency') && (
-            <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-              Analytics
+          {/* Show different navigation based on user type */}
+          {user ? (
+            <>
+              {/* All logged-in users can access surveys */}
+              <Link to="/survey?type=start" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+                Start Shift Check-In
+              </Link>
+              <Link to="/survey?type=end" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+                End Shift Check-In
+              </Link>
+              
+              {/* Admin users get admin panel */}
+              {hasPermission('admin') && (
+                <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+                  Admin Panel
+                </Link>
+              )}
+              
+              {/* Agency users and admins get analytics */}
+              {hasPermission('agency') && (
+                <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+                  Analytics
+                </Link>
+              )}
+            </>
+          ) : (
+            /* Non-logged in users see basic navigation */
+            <Link to="/" className="text-neutral-900 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+              Home
             </Link>
           )}
         </nav>
@@ -62,12 +77,6 @@ const Header = () => {
                   {user.role}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" className="relative text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-brand-red-600 rounded-full flex items-center justify-center">
-                  <span className="text-xs text-white font-bold">2</span>
-                </span>
-              </Button>
               <Button 
                 variant="ghost" 
                 size="icon" 
