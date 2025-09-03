@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { SurveyAnalytics, SurveyResponse } from "@/types/survey";
+import { SurveyAnalytics, SurveyResponse, SurveyFilters } from "@/types/survey";
 import {
   ChartContainer,
   ChartTooltip,
@@ -48,24 +48,62 @@ const AnalyticsDashboard = () => {
   const [analytics, setAnalytics] = useState<SurveyAnalytics | null>(null);
   const [recentResponses, setRecentResponses] = useState<SurveyResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [timeFilter, setTimeFilter] = useState("7d");
   const [surveyTypeFilter, setSurveyTypeFilter] = useState("all");
 
   useEffect(() => {
     loadAnalytics();
-  }, []);
+  }, [timeFilter, surveyTypeFilter]);
 
   const loadAnalytics = async () => {
     try {
-      setLoading(true);
+      if (loading) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       
-      // Get analytics data
-      const analyticsData = await getSurveyAnalytics();
+      // Build filters based on current filter state
+      const filters: SurveyFilters = {};
+      
+      // Time filter
+      if (timeFilter !== "all") {
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        switch (timeFilter) {
+          case "7d":
+            startDate.setDate(endDate.getDate() - 7);
+            break;
+          case "30d":
+            startDate.setDate(endDate.getDate() - 30);
+            break;
+          case "90d":
+            startDate.setDate(endDate.getDate() - 90);
+            break;
+        }
+        
+        filters.dateRange = { start: startDate, end: endDate };
+      }
+      
+      // Survey type filter
+      if (surveyTypeFilter !== "all") {
+        filters.surveyType = surveyTypeFilter as 'start' | 'end';
+      }
+      
+      // Agency filter (if user is agency role, only show their agency data)
+      if (user?.role === 'agency' && user?.agencyId) {
+        filters.agencyId = user.agencyId;
+      }
+      
+      // Get analytics data with filters
+      const analyticsData = await getSurveyAnalytics(filters);
       setAnalytics(analyticsData);
       
-      // Get recent responses (last 10)
-      const responses = await getSurveyResponses();
-      setRecentResponses(responses.slice(0, 10));
+      // Get recent responses with filters (last 20 for better analysis)
+      const responses = await getSurveyResponses(filters);
+      setRecentResponses(responses.slice(0, 20));
     } catch (error) {
       console.error('Error loading analytics:', error);
       toast({
@@ -75,6 +113,7 @@ const AnalyticsDashboard = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -282,10 +321,11 @@ const AnalyticsDashboard = () => {
               variant="outline"
               size="sm"
               onClick={loadAnalytics}
+              disabled={refreshing}
               className="flex items-center space-x-2"
             >
-              <RefreshCw className="h-4 w-4" />
-              <span>Refresh</span>
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </Button>
           </div>
           <div className="text-sm text-neutral-700 font-medium">
@@ -300,6 +340,12 @@ const AnalyticsDashboard = () => {
           <div className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-neutral-600" />
             <span className="text-sm font-medium text-neutral-700">Filters:</span>
+            {refreshing && (
+              <div className="flex items-center space-x-2 text-xs text-accent-teal-600">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                <span>Updating...</span>
+              </div>
+            )}
           </div>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
             <SelectTrigger className="w-[140px]">
