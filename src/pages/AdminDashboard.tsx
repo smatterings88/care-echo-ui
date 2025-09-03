@@ -997,6 +997,8 @@ const AdminDashboard = () => {
                       }
                       setBulkResults(results);
                       setBulkIsProcessing(false);
+                      // Refresh data so newly imported users appear in the list
+                      try { await loadData(); } catch {}
                     }} disabled={bulkIsProcessing}>
                       {bulkIsProcessing ? 'Importing...' : 'Import'}
                     </Button>
