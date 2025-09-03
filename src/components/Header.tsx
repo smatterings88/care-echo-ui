@@ -1,7 +1,16 @@
-import { User, Menu, LogOut } from "lucide-react";
+import { User, Menu, LogOut, Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const { user, logout, hasPermission } = useAuth();
@@ -12,6 +21,34 @@ const Header = () => {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  // Simple MD5 hash function for Gravatar
+  const md5 = (str: string): string => {
+    let hash = 0;
+    if (str.length === 0) return hash.toString();
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16);
+  };
+
+  // Generate Gravatar URL from email
+  const getGravatarUrl = (email: string) => {
+    const hash = md5(email.toLowerCase().trim());
+    return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
+  };
+
+  // Get user initials for avatar fallback
+  const getUserInitials = (displayName: string) => {
+    return displayName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -66,27 +103,66 @@ const Header = () => {
 
         <div className="flex items-center space-x-3">
           {user ? (
-            <>
-              <div className="hidden md:flex items-center space-x-2 text-sm text-neutral-700">
-                <span className="font-medium">{user.displayName}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  user.role === 'admin' ? 'bg-brand-red-600 text-white' :
-                  user.role === 'agency' ? 'bg-accent-teal text-white' :
-                  'bg-neutral-200 text-neutral-700'
-                }`}>
-                  {user.role}
-                </span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage 
+                      src={getGravatarUrl(user.email)} 
+                      alt={user.displayName}
+                    />
+                    <AvatarFallback className="bg-accent-teal text-white text-sm font-medium">
+                      {getUserInitials(user.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/survey?type=start" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Start Shift Check-In</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/survey?type=end" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>End Shift Check-In</span>
+                  </Link>
+                </DropdownMenuItem>
+                {hasPermission('agency') && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/analytics" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Analytics</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {hasPermission('admin') && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild className="btn-primary">
               <Link to="/login">Login</Link>
