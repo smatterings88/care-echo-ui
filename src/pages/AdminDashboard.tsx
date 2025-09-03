@@ -910,19 +910,19 @@ const AdminDashboard = () => {
               </div>
               <div className="space-y-4">
                 <p className="text-sm text-neutral-700">
-                  Paste CSV with headers: displayName,email,password,agencyId
+                  Paste CSV with headers: displayName,email,password,agency
                 </p>
                 <textarea
                   value={bulkCsvText}
                   onChange={(e) => setBulkCsvText(e.target.value)}
                   rows={10}
                   className="w-full border border-neutral-200 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300"
-                  placeholder={"displayName,email,password,agencyId\nJane Doe,jane@example.com,TempPass123,AGENCY_ID"}
+                  placeholder={"displayName,email,password,agency\nJane Doe,jane@example.com,TempPass123,Acme Care Home"}
                 />
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-neutral-500">
                     - Bulk import is limited to regular users only.\n
-                    - Set agencyId to a valid agency ID.\n
+                    - Use agency name (preferred) or agency ID in the 'agency' column.\n
                     - Admins, managers, and agency users can bulk import users (assigned per their permissions). Managers/admins must create managers/admins individually.
                   </div>
                   <div className="flex gap-2">
@@ -940,13 +940,18 @@ const AdminDashboard = () => {
                       const headers = lines[0].split(',').map(h => h.trim());
                       const idx = (name:string) => headers.indexOf(name);
                       const has = (name:string) => idx(name) !== -1;
-                      const required = ['displayName','email','password','agencyId'];
+                      const required = ['displayName','email','password'];
                       for (const r of required) {
                         if (!has(r)) {
                           setBulkResults([{row:0,status:'error',message:`Missing required header: ${r}` }]);
                           setBulkIsProcessing(false);
                           return;
                         }
+                      }
+                      if (!has('agency') && !has('agencyId')) {
+                        setBulkResults([{row:0,status:'error',message:`Missing required header: agency (or legacy agencyId)` }]);
+                        setBulkIsProcessing(false);
+                        return;
                       }
                       const results: Array<{row:number,status:'success'|'error',message:string}> = [];
                       for (let i = 1; i < lines.length; i++) {
@@ -959,7 +964,14 @@ const AdminDashboard = () => {
                           const email = get('email');
                           const password = get('password');
                           const role: UserRole = 'user'; // Bulk import restricted to users
-                          const agencyId = has('agencyId') ? get('agencyId') : '';
+                          const agencyVal = has('agency') ? get('agency') : (has('agencyId') ? get('agencyId') : '');
+                          // Resolve agency: accept ID match or case-insensitive name match
+                          const agencyMatch = agencies.find(a => a.id === agencyVal) ||
+                            agencies.find(a => (a.name || '').toLowerCase() === agencyVal.toLowerCase());
+                          const resolvedAgencyId = agencyMatch?.id || '';
+                          if (!resolvedAgencyId && user?.role !== 'agency') {
+                            throw new Error(`Agency not found: '${agencyVal}'`);
+                          }
 
                           // Enforce creator role constraints
                           let payload: CreateUserData;
@@ -967,13 +979,14 @@ const AdminDashboard = () => {
                             payload = { email, password, displayName, role: 'user', agencyId: user.agencyId || '' };
                           } else if (user?.role === 'manager') {
                             // Managers can only create users for their assigned agencies
-                            const chosenAgencyId = agencyId && user.agencyIds?.includes(agencyId) ? agencyId : '';
+                            const chosenAgencyId = resolvedAgencyId && user.agencyIds?.includes(resolvedAgencyId) ? resolvedAgencyId : '';
                             if (!chosenAgencyId) throw new Error('Manager can only assign users to own agencies');
                             payload = { email, password, displayName, role: 'user', agencyId: chosenAgencyId };
                           } else {
                             // Admin can only bulk create users
-                            if (!agencyId) throw new Error('agencyId is required for bulk user import');
-                            payload = { email, password, displayName, role, agencyId };
+                            const finalAgencyId = resolvedAgencyId;
+                            if (!finalAgencyId) throw new Error('Agency is required for bulk user import');
+                            payload = { email, password, displayName, role, agencyId: finalAgencyId };
                           }
 
                           await createUser(payload);
