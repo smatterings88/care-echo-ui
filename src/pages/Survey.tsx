@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { getResponseV2, type Mood, type Stress } from "@/lib/responses";
 
 const Survey = () => {
   const navigate = useNavigate();
@@ -62,28 +63,23 @@ const Survey = () => {
   };
 
   const getReflection = () => {
-    const mood = responses.mood;
+    const mood = responses.mood as Mood;
+    const stressSource = responses.mainConcern as Stress;
     const hasSupport = responses.support.trim().length > 0;
     
-    if (surveyType === 'start') {
-      if (mood === "great" || mood === "okay") {
-        return hasSupport 
-          ? "You're starting strong! Hold onto that positive energy and remember you're making a difference."
-          : "You've got this! Take it one moment at a time and remember to breathe.";
-      } else {
-        return "It's okay to not feel 100% starting out. Be gentle with yourself today and know that your presence matters.";
-      }
-    } else {
-      if (mood === "great" || mood === "okay") {
-        return hasSupport 
-          ? "Glad you found a bright spot today — hold onto that. You're making a difference every day."
-          : "Sounds like a solid shift! Remember to celebrate the small wins along the way.";
-      } else if (mood === "tired") {
-        return "Tough shift, but you still showed up. That counts. Rest well and be kind to yourself tonight.";
-      } else {
-        return "Looks like today was heavy. Take 2 minutes before bed to breathe deeply and let the shift go. You matter.";
-      }
+    // Use the new response system with shift context
+    const response = getResponseV2({
+      shift: surveyType as "start" | "end",
+      mood,
+      stress: stressSource || "Other",
+    });
+    
+    // Add support acknowledgment if user provided support text
+    if (hasSupport) {
+      return `${response} Hold onto those moments of support — they're your anchors.`;
     }
+    
+    return response;
   };
 
   const handleMoodSelect = (mood: string) => {
@@ -101,8 +97,9 @@ const Survey = () => {
   };
 
   const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < 4) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
     }
   };
 
@@ -131,7 +128,7 @@ const Survey = () => {
           </div>
           <h1 className="text-lg font-semibold text-neutral-900">{getSurveyTitle()}</h1>
           <div className="text-sm text-neutral-700">
-            {currentStep}/3
+            {currentStep}/4
           </div>
         </div>
       </header>
@@ -140,7 +137,7 @@ const Survey = () => {
       <div className="w-full bg-neutral-300 h-1">
         <div 
           className="bg-gradient-to-r from-brand-red-600 to-accent-teal h-1 transition-all duration-500"
-          style={{ width: `${(currentStep / 3) * 100}%` }}
+          style={{ width: `${(currentStep / 4) * 100}%` }}
         />
       </div>
 
@@ -291,7 +288,14 @@ const Survey = () => {
                 
                 <div className="bg-gradient-to-r from-brand-red-600/5 to-accent-teal/5 rounded-xl p-6 mb-6">
                   <p className="text-neutral-900 text-lg leading-relaxed">
-                    {getReflection()}
+                    {(() => {
+                      try {
+                        return getReflection();
+                      } catch (error) {
+                        console.error('Error in getReflection:', error);
+                        return "Thank you for taking the time to check in. Your wellbeing matters.";
+                      }
+                    })()}
                   </p>
                 </div>
 
