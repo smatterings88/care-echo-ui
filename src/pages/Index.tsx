@@ -30,16 +30,18 @@ const Index = () => {
               60-second check-ins. Anonymous alerts. Early intervention.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
-              <Link to="/survey">
+              <Link to="/survey?type=start">
                 <button className="btn-primary w-full sm:w-64">
                   START SHIFT CHECK-IN
                 </button>
               </Link>
-              <button
-                className="w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2"
-              >
-                END SHIFT CHECK-IN
-              </button>
+              <Link to="/survey?type=end">
+                <button
+                  className="w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2"
+                >
+                  END SHIFT CHECK-IN
+                </button>
+              </Link>
             </div>
             <div className="mt-8 space-y-2 animate-slide-up">
               <p className="text-neutral-900 font-semibold">Stop the turnover. Save the money. Protect your people.</p>
