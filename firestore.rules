@@ -1,11 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - users can read their own data, admins can read/write all
+    // Users collection - users can read their own data, admins can read/write all, managers can read users from their assigned agencies
     match /users/{userId} {
       allow read: if request.auth != null && (
         request.auth.uid == userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+         resource.data.agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
       allow write: if request.auth != null && (
         request.auth.uid == userId || 
@@ -13,12 +15,15 @@ service cloud.firestore {
       );
     }
     
-    // Agencies collection - admins can read/write, agency users can read their agency
+    // Agencies collection - admins can read/write, agency users can read their agency, managers can read their assigned agencies
     match /agencies/{agencyId} {
       allow read: if request.auth != null && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == agencyId
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == agencyId ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+         agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
       allow write: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -30,7 +35,10 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == resource.data.agencyId)
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == resource.data.agencyId) ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+         resource.data.agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
       allow create: if request.auth != null && (
         request.auth.uid == request.resource.data.userId
