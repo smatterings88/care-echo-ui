@@ -180,7 +180,7 @@ const Survey = () => {
               <h2 className="text-2xl font-bold text-neutral-900 mb-3">
                 {surveyType === 'start' 
                   ? "What's most on your mind as you start today?"
-                  : "What drained you most today?"
+                  : "What drained you most during this shift?"
                 }
               </h2>
               <p className="text-neutral-700">

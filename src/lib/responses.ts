@@ -36,18 +36,18 @@ const RESPONSES: Record<Shift, Record<MoodCategory, string[]>> = {
       "Solid foundation to build on today."
     ],
     neutral: [
-      "Coming in tired? Pace yourself and take breaks where you can.",
-      "You're here even on low energy — that's commitment.",
-      "Lean on your team today when you need support.",
-      "Set a steady pace; you don't have to rush.",
-      "Take it one moment at a time."
+      "Coming in tired? Pace yourself and take breaks where you can. Set a steady pace; you're just one person.",
+      "You're here even on low energy — that's commitment. Lean on your team when you can.",
+      "Lean on your team today when you need support. Don't let the workload overwhelm you.",
+      "Set a steady pace; you don't have to rush. Focus on what's in your control.",
+      "Take it one moment at a time. Do what you can; that's enough."
     ],
     negative: [
-      "Heading in stressed? Take a deep breath — one step at a time.",
-      "Even when it feels heavy, showing up is powerful.",
-      "Remember, you don't have to carry it all alone.",
-      "Be gentle with yourself today.",
-      "Focus on what's in your control."
+      "Heading in stressed? Take a deep breath — one step at a time. Focus on what's in your control.",
+      "Even when it feels heavy, showing up is powerful. Protect your peace where you can.",
+      "Remember, you don't have to carry it all alone. Anchor to your purpose, not their mood.",
+      "Be gentle with yourself today. Don't let others' stress become yours.",
+      "Focus on what's in your control. Keep it simple and steady."
     ]
   },
   end: {
@@ -59,85 +59,23 @@ const RESPONSES: Record<Shift, Record<MoodCategory, string[]>> = {
       "Solid shift! Remember to celebrate the small wins along the way."
     ],
     neutral: [
-      "Not every shift is easy, but your effort matters.",
-      "Fatigue is real. Be kind to yourself after giving so much today.",
-      "Rest tonight — you've carried enough for one day.",
-      "Tough shift, but you still showed up. That counts.",
-      "You gave what you had, and that's enough."
+      "Not every shift is easy, but your effort matters. Overloaded shifts are tough — your effort didn't go unnoticed.",
+      "Fatigue is real. Be kind to yourself after giving so much today. You carried a lot; let yourself rest.",
+      "Rest tonight — you've carried enough for one day. You gave what you had, even if the workload was unfair.",
+      "Tough shift, but you still showed up. That counts. Not every shift is easy, but your effort matters.",
+      "You gave what you had, and that's enough. Be gentle with yourself this evening."
     ],
     negative: [
       "Looks like today was heavy. Take 2 minutes to breathe and let the shift go. You matter.",
-      "Tough shift, but you still showed up. That counts.",
+      "Tough shift, but you still showed up. That counts. Even hard days don't erase your impact.",
       "Even hard days don't erase your impact. Thank you for being there.",
-      "Be extra gentle with yourself tonight.",
-      "Let the day end here — you've done enough."
+      "Be extra gentle with yourself tonight. Let the day end here.",
+      "Let the day end here — you've done enough. Whatever you're carrying, your care still matters."
     ]
   }
 };
 
-/**
- * Stressor overlays applied after base message
- * Provides context-specific encouragement based on stress source
- */
-const OVERLAYS: Record<Shift, {
-  workload: string[];
-  grief: string[];
-  interpersonal: string[]; // family/supervisor/personal
-  other: string[];
-}> = {
-  start: {
-    workload: [
-      "One task at a time if it gets heavy.",
-      "Set a steady pace; you're just one person.",
-      "Lean on your team when you can.",
-      "Don't let the workload overwhelm you."
-    ],
-    grief: [
-      "Your presence can still bring comfort.",
-      "Lead with gentleness — for them and you.",
-      "Small moments of care matter today.",
-      "Be kind to yourself as you care for others."
-    ],
-    interpersonal: [
-      "Focus on what's in your control.",
-      "Protect your peace where you can.",
-      "Anchor to your purpose, not their mood.",
-      "Don't let others' stress become yours."
-    ],
-    other: [
-      "Do what you can; that's enough.",
-      "Keep it simple and steady.",
-      "You've got this.",
-      "Take it one moment at a time."
-    ]
-  },
-  end: {
-    workload: [
-      "Overloaded shifts are tough — your effort didn't go unnoticed.",
-      "You gave what you had, even if the workload was unfair.",
-      "You carried a lot; let yourself rest.",
-      "Not every shift is easy, but your effort matters."
-    ],
-    grief: [
-      "Even when outcomes are painful, your compassion mattered.",
-      "It's hard to witness decline — you brought comfort.",
-      "Hold space for your feelings tonight.",
-      "Grief weighs heavy — your presence made a difference."
-    ],
-    interpersonal: [
-      "Don't let their words define your worth.",
-      "Interpersonal stress lingers — reclaim your peace now.",
-      "You brought care even in the friction.",
-      "Separate their words from your worth — you showed up with heart."
-    ],
-    other: [
-      "You showed up with heart today.",
-      "Be gentle with yourself this evening.",
-      "Let the day end here.",
-      "Whatever you're carrying, your care still matters."
-    ]
-  }
-};
+
 
 /**
  * Seedable random number generator for deterministic testing
@@ -157,15 +95,7 @@ function pick<T>(arr: T[], seed?: number): T {
   return arr[seededIndex(arr.length, seed)];
 }
 
-/**
- * Maps stress source to overlay category
- */
-function overlayKey(stress: Stress): "workload" | "grief" | "interpersonal" | "other" {
-  if (stress === "Workload / understaffing") return "workload";
-  if (stress === "Resident grief or decline") return "grief";
-  if (stress === "Family conflict" || stress === "Supervisor or leadership issues" || stress === "Personal / outside stress") return "interpersonal";
-  return "other";
-}
+
 
 /**
  * Main response function - generates contextual CNA responses
@@ -180,12 +110,9 @@ export function getResponseV2(params: {
 }): string {
   const { shift, mood, stress, deterministicSeed } = params;
   const cat = toMoodCategory(mood);
-  const base = pick(RESPONSES[shift][cat], deterministicSeed);
-  const ovGroup = overlayKey(stress);
-  const overlay = pick(OVERLAYS[shift][ovGroup], deterministicSeed != null ? deterministicSeed + 1 : undefined);
-
-  // Join smartly: avoid double punctuation, keep it short
-  return `${base} ${overlay}`.replace(/\s+/g, " ").trim();
+  
+  // Return just one complete response from the base pool
+  return pick(RESPONSES[shift][cat], deterministicSeed);
 }
 
 /**
@@ -197,4 +124,4 @@ export function getResponse(mood: Mood, stress: Stress): string {
 }
 
 // Export for configuration access
-export { RESPONSES, OVERLAYS };
+export { RESPONSES };
