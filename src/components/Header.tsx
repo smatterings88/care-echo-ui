@@ -94,7 +94,7 @@ const Header = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-neutral-100">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
                       src={getGravatarUrl(user.email)} 
@@ -104,6 +104,11 @@ const Header = () => {
                       {getUserInitials(user.displayName)}
                     </AvatarFallback>
                   </Avatar>
+                  <div className="hidden md:flex flex-col items-start">
+                    <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
+                    <span className="text-xs text-neutral-500">{user.role}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-neutral-500" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
