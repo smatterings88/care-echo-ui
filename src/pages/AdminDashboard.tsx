@@ -28,7 +28,11 @@ import {
   Trash2, 
   UserPlus, 
   Search,
-  Filter
+  Filter,
+  CheckCircle,
+  XCircle,
+  UserCheck,
+  UserX
 } from "lucide-react";
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
 
@@ -651,16 +655,41 @@ const AdminDashboard = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="editActive">Active</Label>
+                    <Label htmlFor="editActive">Account Status</Label>
                     <div className="mt-2">
                       <button
                         type="button"
-                        className={`px-3 py-2 rounded-md text-sm border ${editForm.isActive ?? editingUser.isActive ? 'bg-accent-teal text-white border-accent-teal' : 'bg-white text-neutral-700 border-neutral-300'}`}
+                        className={`relative inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 ${
+                          editForm.isActive ?? editingUser.isActive 
+                            ? 'bg-green-100 text-green-800 border-2 border-green-300 hover:bg-green-200 hover:border-green-400 shadow-sm' 
+                            : 'bg-red-100 text-red-800 border-2 border-red-300 hover:bg-red-200 hover:border-red-400 shadow-sm'
+                        }`}
                         onClick={() => setEditForm(prev => ({ ...prev, isActive: !(prev.isActive ?? editingUser.isActive) }))}
+                        title={`Click to ${(editForm.isActive ?? editingUser.isActive) ? 'deactivate' : 'activate'} user account`}
                       >
-                        {(editForm.isActive ?? editingUser.isActive) ? 'Active' : 'Inactive'}
+                        {(editForm.isActive ?? editingUser.isActive) ? (
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 mr-2 text-red-600" />
+                        )}
+                        <span className="font-semibold">
+                          {(editForm.isActive ?? editingUser.isActive) ? 'Active' : 'Inactive'}
+                        </span>
+                        <div className={`ml-2 w-4 h-4 rounded-full border-2 ${
+                          editForm.isActive ?? editingUser.isActive 
+                            ? 'border-green-500 bg-green-500' 
+                            : 'border-red-500 bg-red-500'
+                        }`}>
+                          <div className="w-1.5 h-1.5 rounded-full mx-auto mt-0.5 bg-white"></div>
+                        </div>
                       </button>
                     </div>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {(editForm.isActive ?? editingUser.isActive) 
+                        ? 'User can log in and access the system' 
+                        : 'User account is disabled and cannot log in'
+                      }
+                    </p>
                   </div>
                   <div className="mt-6">
                     <Button
