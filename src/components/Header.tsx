@@ -68,8 +68,8 @@ const Header = () => {
                 End Shift Check-In
               </Link>
               
-              {/* Admin users get admin panel */}
-              {hasPermission('admin') && (
+              {/* Admins and managers get admin panel */}
+              {hasPermission('manager') && (
                 <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
                   Admin Panel
                 </Link>
@@ -146,7 +146,7 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {hasPermission('admin') && (
+                {hasPermission('manager') && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
