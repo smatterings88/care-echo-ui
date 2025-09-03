@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import md5 from "crypto-js/md5";
 
 const Header = () => {
   const { user, logout, hasPermission } = useAuth();
@@ -23,21 +24,9 @@ const Header = () => {
     }
   };
 
-  // Simple MD5 hash function for Gravatar
-  const md5 = (str: string): string => {
-    let hash = 0;
-    if (str.length === 0) return hash.toString();
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(16);
-  };
-
   // Generate Gravatar URL from email
   const getGravatarUrl = (email: string) => {
-    const hash = md5(email.toLowerCase().trim());
+    const hash = md5(email.toLowerCase().trim()).toString();
     return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
   };
 
