@@ -242,17 +242,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         // Create user document in Firestore
-        const userDoc: UserData = {
+        const baseDoc = {
           uid: userCredential.user.uid,
           email: userData.email,
           displayName: userData.displayName,
-          role: userData.role,
-          agencyId: userData.agencyId,
-          agencyIds: userData.agencyIds,
+          role: userData.role as UserRole,
           createdAt: new Date(),
           lastLoginAt: new Date(),
           isActive: true,
-        };
+        } as Partial<UserData>;
+
+        const withAgencyId = userData.agencyId ? { agencyId: userData.agencyId } : {};
+        const withAgencyIds = (userData.role === 'manager' && userData.agencyIds && userData.agencyIds.length > 0)
+          ? { agencyIds: userData.agencyIds }
+          : {};
+
+        const userDoc = { ...baseDoc, ...withAgencyId, ...withAgencyIds } as UserData;
 
         await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
