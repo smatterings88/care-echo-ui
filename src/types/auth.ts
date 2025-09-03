@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'agency' | 'user';
+export type UserRole = 'admin' | 'manager' | 'agency' | 'user';
 
 export interface UserData {
   uid: string;
@@ -6,7 +6,9 @@ export interface UserData {
   displayName: string;
   role: UserRole;
   agencyId?: string; // Required for users, optional for agency/admins
+  agencyIds?: string[]; // For managers - multiple agencies
   agencyName?: string; // For users to see their agency name
+  agencyNames?: string[]; // For managers - multiple agency names
   createdAt: Date;
   lastLoginAt: Date;
   isActive: boolean;
@@ -38,6 +40,7 @@ export interface CreateUserData {
   displayName: string;
   role: UserRole;
   agencyId?: string;
+  agencyIds?: string[]; // For managers
 }
 
 export interface CreateAgencyData {

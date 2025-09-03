@@ -106,7 +106,14 @@ const Header = () => {
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
-                    <span className="text-xs text-neutral-500">{user.role}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      user.role === 'admin' ? 'bg-brand-red-600 text-white' :
+                      user.role === 'manager' ? 'bg-purple-600 text-white' :
+                      user.role === 'agency' ? 'bg-accent-teal text-white' :
+                      'bg-neutral-200 text-neutral-700'
+                    }`}>
+                      {user.role}
+                    </span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-neutral-500" />
                 </Button>

@@ -5,7 +5,7 @@ export interface SurveyResponse {
   userDisplayName: string;
   agencyId: string;
   agencyName: string;
-  userRole: 'admin' | 'agency' | 'user';
+  userRole: 'admin' | 'manager' | 'agency' | 'user';
   surveyType: 'start' | 'end';
   responses: {
     mood: string;
@@ -54,7 +54,8 @@ export interface SurveyFilters {
   };
   surveyType?: 'start' | 'end';
   agencyId?: string;
-  userRole?: 'admin' | 'agency' | 'user';
+  agencyIds?: string[]; // For managers with multiple agencies
+  userRole?: 'admin' | 'manager' | 'agency' | 'user';
   mood?: string;
   concern?: string;
 }

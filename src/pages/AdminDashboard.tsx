@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -69,6 +70,7 @@ const AdminDashboard = () => {
     displayName: '',
     role: 'user',
     agencyId: '',
+    agencyIds: [],
   });
   const [createUserError, setCreateUserError] = useState<string>('');
 
@@ -124,8 +126,14 @@ const AdminDashboard = () => {
     
     try {
       // Enforce agency assignment requirement for non-admin users
-      if (userForm.role !== 'admin' && !userForm.agencyId) {
+      if (userForm.role !== 'admin' && userForm.role !== 'manager' && !userForm.agencyId) {
         setCreateUserError('Please select an agency for the new user.');
+        return;
+      }
+
+      // Enforce agency assignment requirement for managers
+      if (userForm.role === 'manager' && (!userForm.agencyIds || userForm.agencyIds.length === 0)) {
+        setCreateUserError('Please select at least one agency for the manager.');
         return;
       }
 
@@ -147,6 +155,7 @@ const AdminDashboard = () => {
         displayName: '',
         role: 'user',
         agencyId: '',
+        agencyIds: [],
       });
       setShowCreateUser(false);
       loadData();
@@ -503,6 +512,7 @@ const AdminDashboard = () => {
                         <SelectContent>
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="agency">Agency</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -510,7 +520,8 @@ const AdminDashboard = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label htmlFor="agencyId">
-                          Assign Agency {userForm.role !== 'admin' ? '*' : '(optional)'}
+                          {userForm.role === 'manager' ? 'Assign Agencies' : 'Assign Agency'} 
+                          {userForm.role !== 'admin' ? '*' : '(optional)'}
                         </Label>
                         <Button
                           type="button"
@@ -523,21 +534,78 @@ const AdminDashboard = () => {
                           Add Agency
                         </Button>
                       </div>
-                      <Select
-                        value={userForm.agencyId || 'none'}
-                        onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
-                        required={userForm.role !== 'admin'}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an agency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {agencies.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {userForm.role === 'manager' ? (
+                        <div className="space-y-2">
+                          <Select
+                            value=""
+                            onValueChange={(value: string) => {
+                              if (value && value !== 'none') {
+                                const currentAgencies = userForm.agencyIds || [];
+                                if (!currentAgencies.includes(value)) {
+                                  setUserForm(prev => ({ 
+                                    ...prev, 
+                                    agencyIds: [...currentAgencies, value] 
+                                  }));
+                                }
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select agencies to assign" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Select an agency</SelectItem>
+                              {agencies.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {userForm.agencyIds && userForm.agencyIds.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {userForm.agencyIds.map((agencyId) => {
+                                const agency = agencies.find(a => a.id === agencyId);
+                                return (
+                                  <Badge 
+                                    key={agencyId} 
+                                    variant="secondary"
+                                    className="flex items-center space-x-1"
+                                  >
+                                    <span>{agency?.name || agencyId}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setUserForm(prev => ({
+                                          ...prev,
+                                          agencyIds: prev.agencyIds?.filter(id => id !== agencyId) || []
+                                        }));
+                                      }}
+                                      className="ml-1 text-neutral-500 hover:text-neutral-700"
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Select
+                          value={userForm.agencyId || 'none'}
+                          onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
+                          required={userForm.role !== 'admin'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an agency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {agencies.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </>
                 )}

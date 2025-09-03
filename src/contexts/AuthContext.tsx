@@ -460,7 +460,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const roleHierarchy: Record<UserRole, number> = {
       user: 1,
       agency: 2,
-      admin: 3,
+      manager: 3,
+      admin: 4,
     };
 
     return roleHierarchy[state.user.role] >= roleHierarchy[requiredRole];
@@ -498,6 +499,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (filters?.agencyId) {
         q = query(q, where('agencyId', '==', filters.agencyId));
+      } else if (filters?.agencyIds && filters.agencyIds.length > 0) {
+        // For managers with multiple agencies
+        q = query(q, where('agencyId', 'in', filters.agencyIds));
       }
       
       if (filters?.userRole) {

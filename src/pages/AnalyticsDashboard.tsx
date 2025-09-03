@@ -53,14 +53,15 @@ const AnalyticsDashboard = () => {
   const [timeFilter, setTimeFilter] = useState("7d");
   const [surveyTypeFilter, setSurveyTypeFilter] = useState("all");
   const [agencyFilter, setAgencyFilter] = useState("all");
+  const [selectedAgency, setSelectedAgency] = useState<string>("all");
 
   useEffect(() => {
     loadAnalytics();
   }, [timeFilter, surveyTypeFilter, agencyFilter]);
 
   useEffect(() => {
-    // Load agencies for admin users
-    if (user?.role === 'admin') {
+    // Load agencies for admin users and managers
+    if (user?.role === 'admin' || user?.role === 'manager') {
       loadAgencies();
     }
   }, [user?.role]);
@@ -114,6 +115,13 @@ const AnalyticsDashboard = () => {
       if (user?.role === 'agency' && user?.agencyId) {
         // Agency users can only see their own agency data
         filters.agencyId = user.agencyId;
+      } else if (user?.role === 'manager' && user?.agencyIds && user.agencyIds.length > 0) {
+        // Managers can see data from their assigned agencies
+        if (selectedAgency !== "all") {
+          filters.agencyId = selectedAgency;
+        } else {
+          filters.agencyIds = user.agencyIds;
+        }
       } else if (user?.role === 'admin' && agencyFilter !== "all") {
         // Admin users can filter by specific agency
         filters.agencyId = agencyFilter;
@@ -390,18 +398,32 @@ const AnalyticsDashboard = () => {
               <SelectItem value="end">End shift</SelectItem>
             </SelectContent>
           </Select>
-          {user?.role === 'admin' && (
-            <Select value={agencyFilter} onValueChange={setAgencyFilter}>
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <Select 
+              value={user?.role === 'admin' ? agencyFilter : selectedAgency} 
+              onValueChange={user?.role === 'admin' ? setAgencyFilter : setSelectedAgency}
+            >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All agencies" />
+                <SelectValue placeholder={
+                  user?.role === 'admin' ? "All agencies" : 
+                  user?.role === 'manager' ? "All my agencies" : "All agencies"
+                } />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All agencies</SelectItem>
-                {agencies.map((agency) => (
-                  <SelectItem key={agency.id} value={agency.id}>
-                    {agency.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">
+                  {user?.role === 'admin' ? "All agencies" : "All my agencies"}
+                </SelectItem>
+                {agencies
+                  .filter(agency => 
+                    user?.role === 'admin' || 
+                    (user?.role === 'manager' && user?.agencyIds?.includes(agency.id))
+                  )
+                  .map((agency) => (
+                    <SelectItem key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           )}
