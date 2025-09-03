@@ -197,8 +197,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Validate that agency is assigned for all users except admins
-      if (!userData.agencyId && userData.role !== 'admin') {
-        throw new Error('Agency assignment is required for all users except admins');
+      if (userData.role === 'manager') {
+        // Managers need at least one agency assigned
+        if (!userData.agencyIds || userData.agencyIds.length === 0) {
+          throw new Error('Agency assignment is required for managers');
+        }
+      } else if (userData.role !== 'admin') {
+        // Other users (except admins) need a single agency assigned
+        if (!userData.agencyId) {
+          throw new Error('Agency assignment is required for all users except admins');
+        }
       }
 
       // Set flags to prevent auth state changes during user creation
@@ -231,6 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: userData.displayName,
           role: userData.role,
           agencyId: userData.agencyId,
+          agencyIds: userData.agencyIds,
           createdAt: new Date(),
           lastLoginAt: new Date(),
           isActive: true,
@@ -238,8 +247,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
-        // If user is associated with an agency, update agency user count
-        if (userData.agencyId) {
+        // If user is associated with agencies, update agency user counts
+        if (userData.role === 'manager' && userData.agencyIds) {
+          // For managers, update user count for all assigned agencies
+          for (const agencyId of userData.agencyIds) {
+            const agencyRef = doc(db, 'agencies', agencyId);
+            const agencyDoc = await getDoc(agencyRef);
+            if (agencyDoc.exists()) {
+              await updateDoc(agencyRef, {
+                userCount: (agencyDoc.data()?.userCount || 0) + 1,
+              });
+            }
+          }
+        } else if (userData.agencyId) {
+          // For regular users, update user count for single agency
           const agencyRef = doc(db, 'agencies', userData.agencyId);
           const agencyDoc = await getDoc(agencyRef);
           if (agencyDoc.exists()) {
