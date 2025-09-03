@@ -159,7 +159,7 @@ const AnalyticsDashboard = () => {
   };
 
   const getMoodIcon = (mood: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, React.ComponentType<{ className?: string }>> = {
       great: Smile,
       okay: Meh,
       tired: Frown,
@@ -268,7 +268,7 @@ const AnalyticsDashboard = () => {
   };
 
   const getSupportCategoryIcon = (category: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, React.ComponentType<{ className?: string }>> = {
       "Social Support": UsersIcon,
       "Self-Care": Coffee,
       "Patient Interaction": HeartIcon,

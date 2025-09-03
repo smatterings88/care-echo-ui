@@ -10,7 +10,6 @@ import Survey from "./pages/Survey";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
-import UserStatus from "./pages/UserStatus";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,12 +39,6 @@ const App = () => (
                 <AnalyticsDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/user-status" element={
-              <ProtectedRoute>
-                <UserStatus />
-              </ProtectedRoute>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -50,7 +50,7 @@ const Login = () => {
     try {
       await login(formData);
       navigate("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
     }
   };
@@ -70,8 +70,8 @@ const Login = () => {
     try {
       await sendPasswordResetEmail(auth, formData.email);
       toast.success("Password reset email sent");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to send reset email");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reset email");
     }
   };
 

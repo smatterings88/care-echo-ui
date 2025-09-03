@@ -70,23 +70,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      console.log('Auth state changed:', { 
-        firebaseUser: firebaseUser?.email, 
-        isCreatingUser, 
-        isCreatingUserRef: isCreatingUserRef.current,
-        shouldIgnoreAuthChanges: shouldIgnoreAuthChanges.current,
-        adminUserToRestore: adminUserToRestore?.email 
-      });
-      
       // Skip auth state changes when creating a user to prevent admin logout
       if (isCreatingUser || isCreatingUserRef.current || shouldIgnoreAuthChanges.current) {
-        console.log('Skipping auth state change - creating user or ignoring changes');
         return;
       }
 
       // If we have an admin user to restore and Firebase Auth is null, restore the admin
       if (!firebaseUser && adminUserToRestore) {
-        console.log('Restoring admin user:', adminUserToRestore.email);
         setState({
           user: adminUserToRestore,
           loading: false,
@@ -106,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               userData = userDoc.data() as UserData;
             }
           } catch (firestoreError) {
-            console.log('Firestore error, creating temporary user data');
+            // Firestore error, creating temporary user data
           }
 
           if (!userData) {
@@ -171,14 +161,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           loginCount: (await getDoc(doc(db, 'users', userCredential.user.uid))).data()?.loginCount + 1 || 1,
         });
       } catch (firestoreError) {
-        console.log('Could not update last login time in Firestore');
+        // Could not update last login time in Firestore
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ 
         ...prev, 
         loading: false, 
-        error: error.message || 'Login failed' 
+        error: error instanceof Error ? error.message : 'Login failed' 
       }));
       throw error;
     }
@@ -187,10 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ 
         ...prev, 
-        error: error.message || 'Logout failed' 
+        error: error instanceof Error ? error.message : 'Logout failed' 
       }));
       throw error;
     }
@@ -200,8 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Store the current admin user info before creating new user
     const currentAdminUser = state.user;
     const currentAdminEmail = currentAdminUser?.email;
-    
-    console.log('Current admin user:', currentAdminEmail);
     
     if (!currentAdminEmail) {
       throw new Error('No current user found');
@@ -222,14 +210,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Set flags to prevent auth state changes during user creation
-      console.log('Setting isCreatingUser to true and ignoring auth changes');
       setIsCreatingUser(true);
       isCreatingUserRef.current = true;
       shouldIgnoreAuthChanges.current = true;
       
       // Temporarily unsubscribe from auth state changes
       if (authListenerRef.current) {
-        console.log('Temporarily unsubscribing from auth state changes');
         authListenerRef.current();
         authListenerRef.current = null;
       }
@@ -293,14 +279,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Failed to create user in database. Please check Firestore permissions.');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error during user creation:', error);
-      throw new Error(error.message || 'Failed to create user');
+      throw new Error(error instanceof Error ? error.message : 'Failed to create user');
     } finally {
       // Always clean up auth state, even if there was an error
       try {
         // Sign out the newly created user (they shouldn't be logged in)
-        console.log('Signing out newly created user (secondary auth)');
         try {
           const secondary = getAuth(getSecondaryApp());
           await signOut(secondary);
@@ -308,7 +293,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Manually restore the admin session
         if (currentAdminUser) {
-          console.log('Manually restoring admin user:', currentAdminUser.email);
           setState({
             user: currentAdminUser,
             loading: false,
@@ -320,31 +304,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Re-enable auth state changes
-      console.log('Setting isCreatingUser to false and re-enabling auth changes');
       setIsCreatingUser(false);
       isCreatingUserRef.current = false;
       shouldIgnoreAuthChanges.current = false;
       
       // Resubscribe to auth state changes
-      console.log('Resubscribing to auth state changes');
       const newUnsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-        console.log('Auth state changed (after resubscribe):', { 
-          firebaseUser: firebaseUser?.email, 
-          isCreatingUser, 
-          isCreatingUserRef: isCreatingUserRef.current,
-          shouldIgnoreAuthChanges: shouldIgnoreAuthChanges.current,
-          adminUserToRestore: adminUserToRestore?.email 
-        });
-        
         // Skip auth state changes when creating a user to prevent admin logout
         if (isCreatingUser || isCreatingUserRef.current || shouldIgnoreAuthChanges.current) {
-          console.log('Skipping auth state change - creating user or ignoring changes');
           return;
         }
 
         // If we have an admin user to restore and Firebase Auth is null, restore the admin
         if (!firebaseUser && adminUserToRestore) {
-          console.log('Restoring admin user:', adminUserToRestore.email);
           setState({
             user: adminUserToRestore,
             loading: false,
@@ -363,9 +335,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (userDoc.exists()) {
                 userData = userDoc.data() as UserData;
               }
-            } catch (firestoreError) {
-              console.log('Firestore error, creating temporary user data');
-            }
+                      } catch (firestoreError) {
+            // Firestore error, creating temporary user data
+          }
 
             if (!userData) {
               // Create a temporary user object if Firestore data doesn't exist
@@ -426,8 +398,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isActive: true,
         userCount: 0,
       };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create agency');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to create agency');
     }
   };
 
@@ -442,8 +414,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user: prev.user ? { ...prev.user, ...updates } : null,
         }));
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to update user');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to update user');
     }
   };
 
@@ -453,8 +425,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await deleteDoc(doc(db, 'users', uid));
       // Optimistically update local state
       setState(prev => prev); // no local change to current user
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to delete user');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete user');
     }
   };
 
@@ -463,8 +435,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const q = query(collection(db, 'users'), where('agencyId', '==', agencyId));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => doc.data() as UserData);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch users');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch users');
     }
   };
 
@@ -475,8 +447,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: doc.id,
         ...doc.data(),
       } as UserData));
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch all users');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch all users');
     }
   };
 
@@ -487,8 +459,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: doc.id,
         ...doc.data(),
       })) as AgencyData[];
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch agencies');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch agencies');
     }
   };
 
@@ -507,8 +479,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       }
       return results;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch agencies by ids');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch agencies by ids');
     }
   };
 
@@ -527,8 +499,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       }
       return all;
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch users by agency ids');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch users by agency ids');
     }
   };
 
@@ -556,9 +528,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (state.user?.uid) {
         try { await updateDoc(doc(db, 'users', state.user.uid), { lastActiveAt: serverTimestamp() }); } catch {}
       }
-      console.log('Survey response saved with ID:', surveyRef.id);
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to submit survey response');
+              // Survey response saved successfully
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to submit survey response');
     }
   };
 
@@ -594,8 +566,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: doc.id,
         ...(doc.data() as Omit<SurveyResponse, 'id'>),
       })) as SurveyResponse[];
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch survey responses');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch survey responses');
     }
   };
 
@@ -660,8 +632,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         averageSupportLength,
         recentTrends: trends,
       };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to fetch survey analytics');
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch survey analytics');
     }
   };
 

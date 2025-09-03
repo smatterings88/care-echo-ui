@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-// import FloatingActionButton from "@/components/FloatingActionButton";
+
 
 const Index = () => {
   const { user } = useAuth();
@@ -61,7 +61,7 @@ const Index = () => {
       </section>
 
       <Footer />
-      {/* <FloatingActionButton /> */}
+
     </div>
   );
 };

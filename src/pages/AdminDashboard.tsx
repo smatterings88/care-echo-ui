@@ -40,11 +40,16 @@ import {
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
 
 // Safely convert Firestore Timestamp or Date-like values to Date
-const toDateSafely = (value: any): Date => {
+const toDateSafely = (value: unknown): Date => {
   if (!value) return new Date(0);
-  if (typeof value?.toDate === "function") return value.toDate();
+  if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
   if (value instanceof Date) return value;
-  return new Date(value);
+  if (typeof value === 'string' || typeof value === 'number') {
+    return new Date(value);
+  }
+  return new Date(0);
 };
 
 const AdminDashboard = () => {
@@ -128,7 +133,7 @@ const AdminDashboard = () => {
       // Derive accurate user counts per agency from fresh user list
       const counts: Record<string, number> = {};
       (usersData || []).forEach((u) => {
-        const aId = (u as any).agencyId;
+        const aId = (u as UserData).agencyId;
         if (aId) counts[aId] = (counts[aId] || 0) + 1;
       });
       setAgencyUserCounts(counts);
@@ -192,9 +197,9 @@ const AdminDashboard = () => {
       });
       setShowCreateUser(false);
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create user:', error);
-      setCreateUserError(error?.message || 'Failed to create user');
+      setCreateUserError(error instanceof Error ? error.message : 'Failed to create user');
     }
   };
 
@@ -435,8 +440,8 @@ const AdminDashboard = () => {
                               try {
                                 await deleteUser(user.uid);
                                 await loadData();
-                              } catch (err: any) {
-                                console.error(err);
+                              } catch (err: unknown) {
+                                console.error('Error deleting user:', err);
                               }
                             }}
                           >
@@ -819,8 +824,8 @@ const AdminDashboard = () => {
                           setResetStatus("Sending...");
                           await sendPasswordResetEmail(auth, editingUser.email);
                           setResetStatus("Password reset email sent.");
-                        } catch (err: any) {
-                          setResetStatus(err?.message || "Failed to send reset email");
+                        } catch (err: unknown) {
+                          setResetStatus(err instanceof Error ? err.message : "Failed to send reset email");
                         }
                       }}
                     >
@@ -1006,8 +1011,8 @@ const AdminDashboard = () => {
 
                           await createUser(payload);
                           results.push({row: rowNum, status:'success', message: `${email} created`});
-                        } catch (e:any) {
-                          results.push({row: rowNum, status:'error', message: e?.message || 'Unknown error'});
+                        } catch (e: unknown) {
+                          results.push({row: rowNum, status:'error', message: e instanceof Error ? e.message : 'Unknown error'});
                         }
                       }
                       setBulkResults(results);
