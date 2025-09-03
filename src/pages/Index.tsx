@@ -35,33 +35,24 @@ const Index = () => {
             <p className="text-lg text-neutral-600 mb-6 animate-slide-up">
               60-second check-ins. Anonymous alerts. Early intervention.
             </p>
-            {canAccessSurveys ? (
-              <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
-                <Link to="/survey?type=start">
-                  <button className="btn-primary w-full sm:w-64">
-                    START SHIFT CHECK-IN
-                  </button>
-                </Link>
-                <Link to="/survey?type=end">
-                  <button
-                    className="w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2"
-                  >
-                    END SHIFT CHECK-IN
-                  </button>
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
-                <Link to="/login">
-                  <button className="btn-primary w-full sm:w-64">
-                    LOGIN TO ACCESS SURVEYS
-                  </button>
-                </Link>
-                <div className="w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-neutral-200 text-neutral-500 border-neutral-300 cursor-not-allowed">
-                  SURVEYS REQUIRE LOGIN
-                </div>
-              </div>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
+              <Link to={canAccessSurveys ? "/survey?type=start" : "#"} onClick={(e) => !canAccessSurveys && e.preventDefault()}>
+                <button 
+                  className={`btn-primary w-full sm:w-64 ${!canAccessSurveys ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!canAccessSurveys}
+                >
+                  START SHIFT CHECK-IN
+                </button>
+              </Link>
+              <Link to={canAccessSurveys ? "/survey?type=end" : "#"} onClick={(e) => !canAccessSurveys && e.preventDefault()}>
+                <button
+                  className={`w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2 ${!canAccessSurveys ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!canAccessSurveys}
+                >
+                  END SHIFT CHECK-IN
+                </button>
+              </Link>
+            </div>
             <div className="mt-8 space-y-2 animate-slide-up">
               <p className="text-neutral-900 font-semibold">Stop the turnover. Save the money. Protect your people.</p>
             </div>
