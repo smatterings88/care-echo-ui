@@ -24,6 +24,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db, getSecondaryApp } from '@/lib/firebase';
 import { UserData, UserRole, AuthState, LoginCredentials, CreateUserData, CreateAgencyData, AgencyData } from '@/types/auth';
+import { SurveyResponse, SurveyAnalytics, SurveyFilters } from '@/types/survey';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -36,6 +37,10 @@ interface AuthContextType extends AuthState {
   getAgencies: () => Promise<AgencyData[]>;
   hasPermission: (requiredRole: UserRole) => boolean;
   deleteUser: (uid: string) => Promise<void>;
+  // Survey functions
+  submitSurveyResponse: (surveyData: Omit<SurveyResponse, 'id' | 'createdAt'>) => Promise<void>;
+  getSurveyResponses: (filters?: SurveyFilters) => Promise<SurveyResponse[]>;
+  getSurveyAnalytics: (filters?: SurveyFilters) => Promise<SurveyAnalytics>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -461,6 +466,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return roleHierarchy[state.user.role] >= roleHierarchy[requiredRole];
   };
 
+  // Survey functions
+  const submitSurveyResponse = async (surveyData: Omit<SurveyResponse, 'id' | 'createdAt'>) => {
+    try {
+      const surveyRef = await addDoc(collection(db, 'surveys'), {
+        ...surveyData,
+        createdAt: serverTimestamp(),
+      });
+      
+      console.log('Survey response saved with ID:', surveyRef.id);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to submit survey response');
+    }
+  };
+
+  const getSurveyResponses = async (filters?: SurveyFilters): Promise<SurveyResponse[]> => {
+    try {
+      let q: any = collection(db, 'surveys');
+      
+      // Apply filters
+      if (filters?.dateRange) {
+        q = query(q, 
+          where('completedAt', '>=', filters.dateRange.start),
+          where('completedAt', '<=', filters.dateRange.end)
+        );
+      }
+      
+      if (filters?.surveyType) {
+        q = query(q, where('surveyType', '==', filters.surveyType));
+      }
+      
+      if (filters?.agencyId) {
+        q = query(q, where('agencyId', '==', filters.agencyId));
+      }
+      
+      if (filters?.userRole) {
+        q = query(q, where('userRole', '==', filters.userRole));
+      }
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as Omit<SurveyResponse, 'id'>),
+      })) as SurveyResponse[];
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to fetch survey responses');
+    }
+  };
+
+  const getSurveyAnalytics = async (filters?: SurveyFilters): Promise<SurveyAnalytics> => {
+    try {
+      const responses = await getSurveyResponses(filters);
+      
+      // Calculate analytics
+      const totalResponses = responses.length;
+      const responsesByType = {
+        start: responses.filter(r => r.surveyType === 'start').length,
+        end: responses.filter(r => r.surveyType === 'end').length,
+      };
+      
+      const responsesByMood = {
+        great: responses.filter(r => r.responses.mood === 'great').length,
+        okay: responses.filter(r => r.responses.mood === 'okay').length,
+        tired: responses.filter(r => r.responses.mood === 'tired').length,
+        stressed: responses.filter(r => r.responses.mood === 'stressed').length,
+        overwhelmed: responses.filter(r => r.responses.mood === 'overwhelmed').length,
+      };
+      
+      const responsesByConcern = {
+        'Resident grief or decline': responses.filter(r => r.responses.mainConcern === 'Resident grief or decline').length,
+        'Family conflict': responses.filter(r => r.responses.mainConcern === 'Family conflict').length,
+        'Workload / understaffing': responses.filter(r => r.responses.mainConcern === 'Workload / understaffing').length,
+        'Supervisor or leadership issues': responses.filter(r => r.responses.mainConcern === 'Supervisor or leadership issues').length,
+        'Personal / outside stress': responses.filter(r => r.responses.mainConcern === 'Personal / outside stress').length,
+        'Other': responses.filter(r => r.responses.mainConcern === 'Other').length,
+      };
+      
+      const averageSupportLength = responses.length > 0 
+        ? responses.reduce((sum, r) => sum + (r.responses.support?.length || 0), 0) / responses.length 
+        : 0;
+      
+      // Calculate recent trends (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentResponses = responses.filter(r => r.completedAt >= sevenDaysAgo);
+      const recentTrends = recentResponses.reduce((acc, response) => {
+        const date = response.completedAt.toDateString();
+        if (!acc[date]) {
+          acc[date] = { count: 0, totalMood: 0 };
+        }
+        acc[date].count++;
+        acc[date].totalMood += ['great', 'okay', 'tired', 'stressed', 'overwhelmed'].indexOf(response.responses.mood) + 1;
+        return acc;
+      }, {} as Record<string, { count: number; totalMood: number }>);
+      
+      const trends = Object.entries(recentTrends).map(([date, data]) => ({
+        date,
+        count: data.count,
+        averageMood: data.totalMood / data.count,
+      }));
+      
+      return {
+        totalResponses,
+        responsesByType,
+        responsesByMood,
+        responsesByConcern,
+        averageSupportLength,
+        recentTrends: trends,
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to fetch survey analytics');
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -473,6 +592,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getAgencies,
     hasPermission,
     deleteUser,
+    submitSurveyResponse,
+    getSurveyResponses,
+    getSurveyAnalytics,
   };
 
   return (

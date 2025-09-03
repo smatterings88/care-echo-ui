@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Survey from "./pages/Survey";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import UserStatus from "./pages/UserStatus";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +33,11 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requiredRole="agency">
+                <AnalyticsDashboard />
               </ProtectedRoute>
             } />
             <Route path="/user-status" element={

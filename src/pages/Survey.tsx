@@ -12,7 +12,7 @@ const Survey = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, submitSurveyResponse } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -132,12 +132,53 @@ const Survey = () => {
     }
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Survey Completed",
-      description: "Thank you for taking the time to check in. Your wellbeing matters.",
-    });
-    setTimeout(() => navigate("/"), 2000);
+  const handleSubmit = async () => {
+    try {
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated. Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prepare survey data for submission
+      const surveyData = {
+        userId: user.uid,
+        userEmail: user.email,
+        userDisplayName: user.displayName,
+        agencyId: user.agencyId || '',
+        agencyName: user.agencyName || '',
+        userRole: user.role,
+        surveyType: surveyType as 'start' | 'end',
+        responses: {
+          mood: responses.mood,
+          mainConcern: responses.mainConcern,
+          mainConcernOther: responses.mainConcernOther,
+          support: responses.support,
+        },
+        reflection: getReflection(),
+        completedAt: new Date(),
+      };
+
+      // Submit survey response
+      await submitSurveyResponse(surveyData);
+
+      toast({
+        title: "Survey Completed",
+        description: "Thank you for taking the time to check in. Your wellbeing matters.",
+      });
+      
+      setTimeout(() => navigate("/"), 2000);
+    } catch (error) {
+      console.error('Error submitting survey:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your survey response. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Show loading state while checking authentication

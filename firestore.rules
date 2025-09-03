@@ -24,9 +24,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // Surveys collection - users can read/write their own surveys
+    // Surveys collection - users can read/write their own surveys, admins/agencies can read all
     match /surveys/{surveyId} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.userId || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == resource.data.agencyId)
+      );
+      allow write: if request.auth != null && (
         request.auth.uid == resource.data.userId || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );

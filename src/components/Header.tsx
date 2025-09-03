@@ -42,9 +42,11 @@ const Header = () => {
               Admin
             </Link>
           )}
-          <a href="#" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-            Analytics
-          </a>
+          {hasPermission('agency') && (
+            <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+              Analytics
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center space-x-3">
