@@ -659,68 +659,70 @@ const AnalyticsDashboard = () => {
           </Card>
         )}
 
-        {/* Recent Responses */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-neutral-900">Recent Responses</h3>
-            <Eye className="h-5 w-5 text-neutral-600" />
-          </div>
-          <div className="space-y-4">
-            {filteredResponses.length === 0 ? (
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
-                <p className="text-neutral-600">No responses found with current filters</p>
-              </div>
-            ) : (
-              filteredResponses.map((response) => (
-                <div key={response.id} className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{getMoodEmoji(response.responses.mood)}</span>
-                      <div>
-                        <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
-                        <p className="text-sm text-neutral-600">{response.agencyName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          response.surveyType === 'start' 
-                            ? 'border-accent-teal-200 text-accent-teal-700 bg-accent-teal-50' 
-                            : 'border-brand-red-200 text-brand-red-700 bg-brand-red-50'
-                        }`}
-                      >
-                        {response.surveyType === 'start' ? 'Start' : 'End'} Shift
-                      </Badge>
-                      <span className="text-xs text-neutral-500">
-                        {new Date(response.completedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-neutral-700">Concern:</span>
-                      <span className="text-sm text-neutral-600">{response.responses.mainConcern}</span>
-                      {response.responses.mainConcernOther && (
-                        <span className="text-sm text-neutral-500 italic">- {response.responses.mainConcernOther}</span>
-                      )}
-                    </div>
-                    {response.responses.support && (
-                      <div className="flex items-start space-x-2">
-                        <span className="text-sm font-medium text-neutral-700">Support:</span>
-                        <span className="text-sm text-neutral-600">{response.responses.support}</span>
-                      </div>
-                    )}
-                    <div className="mt-3 p-3 bg-neutral-50 rounded-lg">
-                      <p className="text-sm text-neutral-700 italic">"{response.reflection}"</p>
-                    </div>
-                  </div>
+        {/* Recent Responses - Only show for admin users */}
+        {user?.role === 'admin' && (
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-neutral-900">Recent Responses</h3>
+              <Eye className="h-5 w-5 text-neutral-600" />
+            </div>
+            <div className="space-y-4">
+              {filteredResponses.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+                  <p className="text-neutral-600">No responses found with current filters</p>
                 </div>
-              ))
-            )}
-          </div>
-        </Card>
+              ) : (
+                filteredResponses.map((response) => (
+                  <div key={response.id} className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{getMoodEmoji(response.responses.mood)}</span>
+                        <div>
+                          <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
+                          <p className="text-sm text-neutral-600">{response.agencyName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            response.surveyType === 'start' 
+                              ? 'border-accent-teal-200 text-accent-teal-700 bg-accent-teal-50' 
+                              : 'border-brand-red-200 text-brand-red-700 bg-brand-red-50'
+                          }`}
+                        >
+                          {response.surveyType === 'start' ? 'Start' : 'End'} Shift
+                        </Badge>
+                        <span className="text-xs text-neutral-500">
+                          {new Date(response.completedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-neutral-700">Concern:</span>
+                        <span className="text-sm text-neutral-600">{response.responses.mainConcern}</span>
+                        {response.responses.mainConcernOther && (
+                          <span className="text-sm text-neutral-500 italic">- {response.responses.mainConcernOther}</span>
+                        )}
+                      </div>
+                      {response.responses.support && (
+                        <div className="flex items-start space-x-2">
+                          <span className="text-sm font-medium text-neutral-700">Support:</span>
+                          <span className="text-sm text-neutral-600">{response.responses.support}</span>
+                        </div>
+                      )}
+                      <div className="mt-3 p-3 bg-neutral-50 rounded-lg">
+                        <p className="text-sm text-neutral-700 italic">"{response.reflection}"</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
