@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import FloatingActionButton from "@/components/FloatingActionButton";
+// import FloatingActionButton from "@/components/FloatingActionButton";
 
 const Index = () => {
   return (
@@ -49,7 +49,7 @@ const Index = () => {
       </section>
 
       <Footer />
-      <FloatingActionButton />
+      {/* <FloatingActionButton /> */}
     </div>
   );
 };
