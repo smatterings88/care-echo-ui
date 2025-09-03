@@ -125,6 +125,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             loading: false,
             error: null,
           });
+
+          // Activity tracking: mark lastActiveAt now
+          try {
+            await updateDoc(doc(db, 'users', firebaseUser.uid), {
+              lastActiveAt: serverTimestamp(),
+            });
+          } catch {}
+
         } catch (error) {
           console.error('Auth error:', error);
           setState({
@@ -157,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await updateDoc(doc(db, 'users', userCredential.user.uid), {
           lastLoginAt: serverTimestamp(),
+          loginCount: (await getDoc(doc(db, 'users', userCredential.user.uid))).data()?.loginCount + 1 || 1,
         });
       } catch (firestoreError) {
         console.log('Could not update last login time in Firestore');
@@ -495,7 +504,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...surveyData,
         createdAt: serverTimestamp(),
       });
-      
+      // Update lastActiveAt upon activity
+      if (state.user?.uid) {
+        try { await updateDoc(doc(db, 'users', state.user.uid), { lastActiveAt: serverTimestamp() }); } catch {}
+      }
       console.log('Survey response saved with ID:', surveyRef.id);
     } catch (error: any) {
       throw new Error(error.message || 'Failed to submit survey response');

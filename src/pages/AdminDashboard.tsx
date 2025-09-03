@@ -33,7 +33,9 @@ import {
   CheckCircle,
   XCircle,
   UserCheck,
-  UserX
+  UserX,
+  UploadCloud,
+  Edit3
 } from "lucide-react";
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
 
@@ -57,6 +59,10 @@ const AdminDashboard = () => {
   const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
   const [agencyUserCounts, setAgencyUserCounts] = useState<Record<string, number>>({});
   const [openAgencyUsersFor, setOpenAgencyUsersFor] = useState<string | null>(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState("");
+  const [bulkIsProcessing, setBulkIsProcessing] = useState(false);
+  const [bulkResults, setBulkResults] = useState<Array<{row:number,status:'success'|'error',message:string}>>([]);
 
   // Edit user modal state
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -337,13 +343,19 @@ const AdminDashboard = () => {
         {/* Action Buttons */}
         <div className="flex gap-4 mb-6">
           {activeTab === 'users' ? (
-            <Button
-              onClick={() => setShowCreateUser(true)}
-              className="btn-primary"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create User
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowCreateUser(true)}
+                className="btn-primary"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+              <Button variant="outline" onClick={() => setShowBulkImport(true)} className="flex items-center">
+                <UploadCloud className="h-4 w-4 mr-2" />
+                Bulk Import
+              </Button>
+            </div>
           ) : (
             <Button
               onClick={() => setShowCreateAgency(true)}
@@ -884,6 +896,119 @@ const AdminDashboard = () => {
                   </Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        )}
+
+        {/* Bulk Import Modal */}
+        {showBulkImport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-2xl p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-bold text-neutral-900">Bulk Import Users (CSV)</h2>
+                <Button variant="ghost" onClick={() => setShowBulkImport(false)}>Close</Button>
+              </div>
+              <div className="space-y-4">
+                <p className="text-sm text-neutral-700">
+                  Paste CSV with headers: displayName,email,password,role,agencyId,agencyIds
+                </p>
+                <textarea
+                  value={bulkCsvText}
+                  onChange={(e) => setBulkCsvText(e.target.value)}
+                  rows={10}
+                  className="w-full border border-neutral-200 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300"
+                  placeholder={"displayName,email,password,role,agencyId,agencyIds\nJane Doe,jane@example.com,TempPass123,user,AGENCY_ID,\nAcme Manager,manager@example.com,TempPass123,manager,,AGENCY_ID1|AGENCY_ID2"}
+                />
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-neutral-500">
+                    - For managers, leave agencyId empty and provide agencyIds as pipe-separated IDs.\n
+                    - For agency/users, set agencyId to a valid agency ID.\n
+                    - Only admins can import managers; managers can import users for their agencies; agency users can import users for their own agency.
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setBulkCsvText("")}>Clear</Button>
+                    <Button onClick={async () => {
+                      if (!bulkCsvText.trim()) return;
+                      setBulkIsProcessing(true);
+                      setBulkResults([]);
+                      const lines = bulkCsvText.split(/\r?\n/).filter(l => l.trim().length > 0);
+                      if (lines.length <= 1) {
+                        setBulkResults([{row:0,status:'error',message:'No data rows found under headers'}]);
+                        setBulkIsProcessing(false);
+                        return;
+                      }
+                      const headers = lines[0].split(',').map(h => h.trim());
+                      const idx = (name:string) => headers.indexOf(name);
+                      const has = (name:string) => idx(name) !== -1;
+                      const required = ['displayName','email','password','role'];
+                      for (const r of required) {
+                        if (!has(r)) {
+                          setBulkResults([{row:0,status:'error',message:`Missing required header: ${r}` }]);
+                          setBulkIsProcessing(false);
+                          return;
+                        }
+                      }
+                      const results: Array<{row:number,status:'success'|'error',message:string}> = [];
+                      for (let i = 1; i < lines.length; i++) {
+                        const rowNum = i; // 1-based excluding header note in result
+                        try {
+                          const raw = lines[i];
+                          const cols = raw.split(',');
+                          const get = (name:string) => cols[idx(name)]?.trim() || '';
+                          const displayName = get('displayName');
+                          const email = get('email');
+                          const password = get('password');
+                          const role = get('role') as UserRole;
+                          const agencyId = has('agencyId') ? get('agencyId') : '';
+                          const agencyIdsStr = has('agencyIds') ? get('agencyIds') : '';
+                          const agencyIds = agencyIdsStr ? agencyIdsStr.split('|').map(s => s.trim()).filter(Boolean) : undefined;
+
+                          // Enforce creator role constraints
+                          let payload: CreateUserData;
+                          if (user?.role === 'agency') {
+                            payload = { email, password, displayName, role: 'user', agencyId: user.agencyId || '' };
+                          } else if (user?.role === 'manager') {
+                            // Managers can only create users for their assigned agencies
+                            const chosenAgencyId = agencyId && user.agencyIds?.includes(agencyId) ? agencyId : '';
+                            if (!chosenAgencyId) throw new Error('Manager can only assign users to own agencies');
+                            payload = { email, password, displayName, role: 'user', agencyId: chosenAgencyId };
+                          } else {
+                            // Admin
+                            if (role === 'manager') {
+                              if (!agencyIds || agencyIds.length === 0) throw new Error('Manager requires at least one agencyId');
+                              payload = { email, password, displayName, role, agencyIds };
+                            } else {
+                              if (!agencyId) throw new Error('agencyId is required for non-admin, non-manager users');
+                              payload = { email, password, displayName, role, agencyId };
+                            }
+                          }
+
+                          await createUser(payload);
+                          results.push({row: rowNum, status:'success', message: `${email} created`});
+                        } catch (e:any) {
+                          results.push({row: rowNum, status:'error', message: e?.message || 'Unknown error'});
+                        }
+                      }
+                      setBulkResults(results);
+                      setBulkIsProcessing(false);
+                    }} disabled={bulkIsProcessing}>
+                      {bulkIsProcessing ? 'Importing...' : 'Import'}
+                    </Button>
+                  </div>
+                </div>
+                {bulkResults.length > 0 && (
+                  <div className="mt-4 border border-neutral-200 rounded-md p-3 max-h-60 overflow-auto">
+                    {bulkResults.map((r, i) => (
+                      <div key={i} className={`text-sm ${r.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                        Row {r.row}: {r.status.toUpperCase()} - {r.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowBulkImport(false)}>Done</Button>
+                </div>
+              </div>
             </Card>
           </div>
         )}
