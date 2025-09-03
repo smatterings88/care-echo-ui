@@ -138,15 +138,27 @@ const AdminDashboard = () => {
       }
 
       // Enforce agency user constraints: force role=user and agencyId to creator's agency
-      const payload: CreateUserData = user?.role === 'agency'
-        ? {
-            email: userForm.email,
-            password: userForm.password,
-            displayName: userForm.displayName,
-            role: 'user',
-            agencyId: user.agencyId || '',
-          }
-        : userForm;
+      let payload: CreateUserData;
+      if (user?.role === 'agency') {
+        payload = {
+          email: userForm.email,
+          password: userForm.password,
+          displayName: userForm.displayName,
+          role: 'user',
+          agencyId: user.agencyId || '',
+        };
+      } else if (user?.role === 'manager') {
+        // Managers can only create users for their assigned agencies
+        payload = {
+          email: userForm.email,
+          password: userForm.password,
+          displayName: userForm.displayName,
+          role: 'user',
+          agencyId: userForm.agencyId || '',
+        };
+      } else {
+        payload = userForm;
+      }
 
       await createUser(payload);
       setUserForm({
@@ -498,6 +510,10 @@ const AdminDashboard = () => {
                   <div className="text-sm text-neutral-600">
                     This user will be assigned to your agency automatically.
                   </div>
+                ) : user?.role === 'manager' ? (
+                  <div className="text-sm text-neutral-600">
+                    You can create users for your assigned agencies.
+                  </div>
                 ) : (
                   <>
                     <div>
@@ -512,7 +528,9 @@ const AdminDashboard = () => {
                         <SelectContent>
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="agency">Agency</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
+                          {user?.role === 'admin' && (
+                            <SelectItem value="manager">Manager</SelectItem>
+                          )}
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -600,9 +618,15 @@ const AdminDashboard = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">None</SelectItem>
-                            {agencies.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                            ))}
+                            {agencies
+                              .filter(agency => 
+                                user?.role === 'admin' || 
+                                (user?.role === 'manager' && user?.agencyIds?.includes(agency.id))
+                              )
+                              .map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))
+                            }
                           </SelectContent>
                         </Select>
                       )}
