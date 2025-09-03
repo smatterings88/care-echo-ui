@@ -7,12 +7,14 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: UserRole;
   fallbackPath?: string;
+  requireAgency?: boolean; // New prop to require agency association
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requiredRole = "user",
-  fallbackPath = "/login"
+  fallbackPath = "/login",
+  requireAgency = false
 }) => {
   const { user, loading, hasPermission } = useAuth();
 
@@ -39,6 +41,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <h1 className="text-xl font-bold mb-2">Access Denied</h1>
             <p className="text-sm">
               You don't have permission to access this page. Required role: {requiredRole}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check agency association if required
+  if (requireAgency && user.role !== 'admin' && !user.agencyId) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="bg-error/10 border border-error text-error px-6 py-8 rounded-lg">
+            <h1 className="text-xl font-bold mb-2">Agency Association Required</h1>
+            <p className="text-sm">
+              You must be associated with an agency to access this feature.
             </p>
           </div>
         </div>

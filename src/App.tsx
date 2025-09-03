@@ -25,7 +25,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Index />} />
             <Route path="/survey" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAgency={true}>
                 <Survey />
               </ProtectedRoute>
             } />

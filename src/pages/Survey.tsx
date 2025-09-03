@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,15 +6,44 @@ import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getResponseV2, type Mood, type Stress } from "@/lib/responses";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Survey = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Get survey type from URL params
   const surveyType = searchParams.get('type') || 'start';
+
+  // Check authentication and agency association
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access the survey.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    // Check if user has agency association (required for all users except admins)
+    if (user.role !== 'admin' && !user.agencyId) {
+      toast({
+        title: "Agency Association Required",
+        description: "You must be associated with an agency to take surveys.",
+        variant: "destructive",
+      });
+      navigate('/');
+      return;
+    }
+
+    setIsLoading(false);
+  }, [user, navigate, toast]);
   
   const [responses, setResponses] = useState({
     mood: "",
@@ -110,6 +139,18 @@ const Survey = () => {
     });
     setTimeout(() => navigate("/"), 2000);
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red-600 mx-auto mb-4"></div>
+          <p className="text-neutral-700">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">
