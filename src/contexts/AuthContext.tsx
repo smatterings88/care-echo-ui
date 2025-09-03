@@ -20,7 +20,8 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  documentId
 } from 'firebase/firestore';
 import { auth, db, getSecondaryApp } from '@/lib/firebase';
 import { UserData, UserRole, AuthState, LoginCredentials, CreateUserData, CreateAgencyData, AgencyData } from '@/types/auth';
@@ -35,6 +36,8 @@ interface AuthContextType extends AuthState {
   getUsersByAgency: (agencyId: string) => Promise<UserData[]>;
   getAllUsers: () => Promise<UserData[]>;
   getAgencies: () => Promise<AgencyData[]>;
+  getAgenciesByIds: (ids: string[]) => Promise<AgencyData[]>;
+  getUsersByAgencyIds: (ids: string[]) => Promise<UserData[]>;
   hasPermission: (requiredRole: UserRole) => boolean;
   deleteUser: (uid: string) => Promise<void>;
   // Survey functions
@@ -489,6 +492,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getAgenciesByIds = async (ids: string[]): Promise<AgencyData[]> => {
+    try {
+      if (!ids || ids.length === 0) return [];
+      // Firestore 'in' has a max of 10 elements - chunk if needed
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+      const results: AgencyData[] = [];
+      for (const chunk of chunks) {
+        const qRef = query(collection(db, 'agencies'), where(documentId(), 'in', chunk));
+        const qs = await getDocs(qRef);
+        results.push(
+          ...qs.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as AgencyData[]
+        );
+      }
+      return results;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to fetch agencies by ids');
+    }
+  };
+
+  const getUsersByAgencyIds = async (ids: string[]): Promise<UserData[]> => {
+    try {
+      if (!ids || ids.length === 0) return [];
+      // 'in' max 10 - chunk
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+      const all: UserData[] = [];
+      for (const chunk of chunks) {
+        const qRef = query(collection(db, 'users'), where('agencyId', 'in', chunk));
+        const qs = await getDocs(qRef);
+        all.push(
+          ...qs.docs.map(d => ({ uid: d.id, ...(d.data() as any) })) as UserData[]
+        );
+      }
+      return all;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to fetch users by agency ids');
+    }
+  };
+
   const hasPermission = (requiredRole: UserRole): boolean => {
     if (!state.user) return false;
     
@@ -632,6 +675,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getUsersByAgency,
     getAllUsers,
     getAgencies,
+    getAgenciesByIds,
+    getUsersByAgencyIds,
     hasPermission,
     deleteUser,
     submitSurveyResponse,

@@ -48,7 +48,7 @@ const toDateSafely = (value: any): Date => {
 };
 
 const AdminDashboard = () => {
-  const { user, createUser, createAgency, getUsersByAgency, getAllUsers, getAgencies, updateUser, deleteUser } = useAuth();
+  const { user, createUser, createAgency, getUsersByAgency, getUsersByAgencyIds, getAllUsers, getAgencies, getAgenciesByIds, updateUser, deleteUser } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [agencies, setAgencies] = useState<AgencyData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,16 +103,31 @@ const AdminDashboard = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [agenciesData, allUsers] = await Promise.all([
-        getAgencies(),
-        getAllUsers(),
-      ]);
+      let agenciesData: AgencyData[] = [];
+      let usersData: UserData[] = [];
+
+      if (user?.role === 'admin') {
+        [agenciesData, usersData] = await Promise.all([
+          getAgencies(),
+          getAllUsers(),
+        ]);
+      } else if (user?.role === 'manager' && user.agencyIds && user.agencyIds.length > 0) {
+        agenciesData = await getAgenciesByIds(user.agencyIds);
+        usersData = await getUsersByAgencyIds(user.agencyIds);
+      } else if (user?.role === 'agency' && user.agencyId) {
+        agenciesData = (await getAgencies()).filter(a => a.id === user.agencyId);
+        usersData = await getUsersByAgency(user.agencyId);
+      } else {
+        agenciesData = [];
+        usersData = [];
+      }
+
       setAgencies(agenciesData || []);
-      setUsers(allUsers || []);
+      setUsers(usersData || []);
 
       // Derive accurate user counts per agency from fresh user list
       const counts: Record<string, number> = {};
-      (allUsers || []).forEach((u) => {
+      (usersData || []).forEach((u) => {
         const aId = (u as any).agencyId;
         if (aId) counts[aId] = (counts[aId] || 0) + 1;
       });
