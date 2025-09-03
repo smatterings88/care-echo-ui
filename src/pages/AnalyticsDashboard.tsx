@@ -57,7 +57,7 @@ const AnalyticsDashboard = () => {
 
   useEffect(() => {
     loadAnalytics();
-  }, [timeFilter, surveyTypeFilter, agencyFilter]);
+  }, [timeFilter, surveyTypeFilter, agencyFilter, selectedAgency]);
 
   useEffect(() => {
     // Load agencies for admin users and managers
