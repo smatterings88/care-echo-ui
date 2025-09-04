@@ -33,6 +33,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} replace />;
   }
 
+  // Debug logging
+  console.log('ProtectedRoute Debug:', {
+    userRole: user.role,
+    requiredRole,
+    hasPermission: hasPermission(requiredRole),
+    userEmail: user.email
+  });
+
   if (!hasPermission(requiredRole)) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
@@ -42,6 +50,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <p className="text-sm">
               You don't have permission to access this page. Required role: {requiredRole}
             </p>
+            <p className="text-sm mt-2">
+              Your current role: {user.role}
+            </p>
           </div>
         </div>
       </div>
@@ -49,7 +60,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check agency association if required
-      if (requireAgency && user.role !== 'super_admin' && !user.agencyId) {
+  if (requireAgency && user.role !== 'super_admin' && !user.agencyId) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md">

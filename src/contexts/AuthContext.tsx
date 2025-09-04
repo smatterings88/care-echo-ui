@@ -514,7 +514,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       super_admin: 4,
     };
 
-    return roleHierarchy[state.user.role] >= roleHierarchy[requiredRole];
+    const userLevel = roleHierarchy[state.user.role];
+    const requiredLevel = roleHierarchy[requiredRole];
+    const hasAccess = userLevel >= requiredLevel;
+
+    console.log('hasPermission Debug:', {
+      userRole: state.user.role,
+      userLevel,
+      requiredRole,
+      requiredLevel,
+      hasAccess,
+      userEmail: state.user.email
+    });
+
+    return hasAccess;
   };
 
   // Survey functions
