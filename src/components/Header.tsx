@@ -1,4 +1,4 @@
-import { User, Menu, LogOut, Settings, ChevronDown } from "lucide-react";
+import { User, Menu, LogOut, Settings, ChevronDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -154,6 +154,13 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/change-password" className="cursor-pointer">
+                    <Lock className="mr-2 h-4 w-4" />
+                    <span>Change Password</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"

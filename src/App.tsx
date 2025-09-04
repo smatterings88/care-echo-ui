@@ -10,6 +10,7 @@ import Survey from "./pages/Survey";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,11 @@ const App = () => (
             <Route path="/analytics" element={
               <ProtectedRoute requiredRole="agency">
                 <AnalyticsDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/change-password" element={
+              <ProtectedRoute>
+                <ChangePassword />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
