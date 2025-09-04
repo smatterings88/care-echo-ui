@@ -44,7 +44,7 @@ const createSimpleAdmin = async () => {
     console.log('📝 Add these fields:');
     console.log('   - email: "admin@careecho.com"');
     console.log('   - displayName: "System Administrator"');
-    console.log('   - role: "admin"');
+    console.log('   - role: "super_admin"');
     console.log('   - createdAt: [current timestamp]');
     console.log('   - lastLoginAt: [current timestamp]');
     console.log('   - isActive: true');

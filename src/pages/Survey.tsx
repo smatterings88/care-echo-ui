@@ -32,7 +32,7 @@ const Survey = () => {
     }
 
     // Check if user has agency association (required for all users except admins)
-    if (user.role !== 'admin' && !user.agencyId) {
+    if (user.role !== 'super_admin' && !user.agencyId) {
       toast({
         title: "Agency Association Required",
         description: "You must be associated with an agency to take surveys.",

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'agency' | 'user';
+export type UserRole = 'super_admin' | 'org_admin' | 'site_admin' | 'user';
 
 export interface UserData {
   uid: string;

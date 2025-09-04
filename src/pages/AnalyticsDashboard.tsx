@@ -61,7 +61,7 @@ const AnalyticsDashboard = () => {
 
   useEffect(() => {
     // Load agencies for admin users and managers
-    if (user?.role === 'admin' || user?.role === 'manager') {
+    if (user?.role === 'super_admin' || user?.role === 'org_admin') {
       loadAgencies();
     }
   }, [user?.role]);
@@ -112,18 +112,18 @@ const AnalyticsDashboard = () => {
       }
       
       // Agency filter
-      if (user?.role === 'agency' && user?.agencyId) {
-        // Agency users can only see their own agency data
+      if (user?.role === 'site_admin' && user?.agencyId) {
+        // Site_admin users can only see their own agency data
         filters.agencyId = user.agencyId;
-      } else if (user?.role === 'manager' && user?.agencyIds && user.agencyIds.length > 0) {
-        // Managers can see data from their assigned agencies
+      } else if (user?.role === 'org_admin' && user?.agencyIds && user.agencyIds.length > 0) {
+        // Org_admins can see data from their assigned agencies
         if (selectedAgency !== "all") {
           filters.agencyId = selectedAgency;
         } else {
           filters.agencyIds = user.agencyIds;
         }
-      } else if (user?.role === 'admin' && agencyFilter !== "all") {
-        // Admin users can filter by specific agency
+      } else if (user?.role === 'super_admin' && agencyFilter !== "all") {
+        // Super_admin users can filter by specific agency
         filters.agencyId = agencyFilter;
       }
       
@@ -398,25 +398,25 @@ const AnalyticsDashboard = () => {
               <SelectItem value="end">End shift</SelectItem>
             </SelectContent>
           </Select>
-          {(user?.role === 'admin' || user?.role === 'manager') && (
+          {(user?.role === 'super_admin' || user?.role === 'org_admin') && (
             <Select 
-              value={user?.role === 'admin' ? agencyFilter : selectedAgency} 
-              onValueChange={user?.role === 'admin' ? setAgencyFilter : setSelectedAgency}
+              value={user?.role === 'super_admin' ? agencyFilter : selectedAgency} 
+              onValueChange={user?.role === 'super_admin' ? setAgencyFilter : setSelectedAgency}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder={
-                  user?.role === 'admin' ? "All agencies" : 
-                  user?.role === 'manager' ? "All my agencies" : "All agencies"
+                  user?.role === 'super_admin' ? "All agencies" : 
+                  user?.role === 'org_admin' ? "All my agencies" : "All agencies"
                 } />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">
-                  {user?.role === 'admin' ? "All agencies" : "All my agencies"}
+                  {user?.role === 'super_admin' ? "All agencies" : "All my agencies"}
                 </SelectItem>
                 {agencies
                   .filter(agency => 
-                    user?.role === 'admin' || 
-                    (user?.role === 'manager' && user?.agencyIds?.includes(agency.id))
+                    user?.role === 'super_admin' || 
+                    (user?.role === 'org_admin' && user?.agencyIds?.includes(agency.id))
                   )
                   .map((agency) => (
                     <SelectItem key={agency.id} value={agency.id}>
@@ -718,8 +718,8 @@ const AnalyticsDashboard = () => {
           </Card>
         )}
 
-        {/* Recent Responses - Only show for admin users */}
-        {user?.role === 'admin' && (
+        {/* Recent Responses - Only show for super_admin users */}
+        {user?.role === 'super_admin' && (
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-neutral-900">Recent Responses</h3>

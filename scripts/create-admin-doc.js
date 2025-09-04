@@ -26,7 +26,7 @@ const createAdminDocument = async () => {
       uid: adminUid,
       email: 'admin@careecho.com',
       displayName: 'System Administrator',
-      role: 'admin',
+      role: 'super_admin',
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
       isActive: true,
@@ -37,7 +37,7 @@ const createAdminDocument = async () => {
     console.log('✅ Admin user document created successfully!');
     console.log('📧 Email: admin@careecho.com');
     console.log('🆔 UID:', adminUid);
-    console.log('👤 Role: admin');
+    console.log('👤 Role: super_admin');
     console.log('');
     console.log('🎉 You can now use all admin features!');
     

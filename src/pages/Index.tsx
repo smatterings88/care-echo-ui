@@ -8,7 +8,7 @@ const Index = () => {
   const { user } = useAuth();
   
   // Check if user can access surveys (authenticated and has agency association)
-  const canAccessSurveys = user && (user.role === 'admin' || user.agencyId);
+  const canAccessSurveys = user && (user.role === 'super_admin' || user.agencyId);
   
   return (
     <div className="min-h-screen bg-neutral-50">

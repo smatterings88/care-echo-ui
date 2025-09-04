@@ -17,7 +17,7 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 
 ### Key Features
 - **Shift Check-ins**: Start and end-of-shift surveys with intelligent responses
-- **Multi-role Support**: Admin, Manager, Agency, and User roles
+- **Multi-role Support**: Super Admin, Org Admin, Site Admin, and User roles
 - **Analytics Dashboard**: Comprehensive data visualization
 - **User Management**: Bulk user import and individual creation
 - **Agency Management**: Multi-agency support
@@ -40,19 +40,19 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 
 ## User Roles & Permissions
 
-### Admin Users
+### Super Admin Users
 - Create and manage all users and agencies
 - Access all analytics data
 - Bulk import users
 - Full system access
 
-### Manager Users
+### Org Admin Users
 - Create users for assigned agencies only
 - View analytics for assigned agencies
 - Multi-agency management
 - Agency filter in analytics
 
-### Agency Users
+### Site Admin Users
 - Create users for their agency only
 - View analytics for their agency
 - Single agency management
@@ -111,9 +111,9 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 ## Admin Panel
 
 ### Access
-- **Admin Users**: Full access
-- **Manager Users**: Agency-scoped access
-- **Agency Users**: Single agency access
+- **Super Admin Users**: Full access
+- **Org Admin Users**: Agency-scoped access
+- **Site Admin Users**: Single agency access
 - **Regular Users**: No access
 
 ### User Management
@@ -122,7 +122,7 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 1. Click "Create User" button
 2. Fill required fields:
    - Full Name, Email, Password
-   - Role (Admin/Manager/Agency/User)
+   - Role (Super Admin/Org Admin/Site Admin/User)
    - Agency assignment
 3. Click "Create User"
 
@@ -157,9 +157,9 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 ## Analytics Dashboard
 
 ### Access
-- **Admin Users**: All data access
-- **Manager Users**: Assigned agencies' data
-- **Agency Users**: Their agency's data
+- **Super Admin Users**: All data access
+- **Org Admin Users**: Assigned agencies' data
+- **Site Admin Users**: Their agency's data
 - **Regular Users**: No access
 
 ### Dashboard Components
@@ -182,7 +182,7 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 ### Filters
 - **Time**: 7 days, 30 days, all time
 - **Survey Type**: All, Start, End
-- **Agency**: Dropdown (admin/manager only)
+- **Agency**: Dropdown (super_admin/org_admin only)
 
 ---
 
@@ -242,13 +242,13 @@ Care Echo is a healthcare-focused survey platform designed to support healthcare
 - Support staff based on data
 - Communicate findings
 
-### For Manager Users
+### For Org Admin Users
 - Multi-agency coordination
 - Use agency filters
 - Create users only for assigned agencies
 - Look for patterns across agencies
 
-### For Admin Users
+### For Super Admin Users
 - Regular system maintenance
 - Use bulk operations efficiently
 - Assign appropriate permissions

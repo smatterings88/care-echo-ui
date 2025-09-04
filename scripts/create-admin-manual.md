@@ -25,7 +25,7 @@ Since the production rules require authentication, you need to create the admin 
 | uid | string | UwPSQuXCAxaJeLe9Q5c35LtwJGa2 |
 | email | string | admin@careecho.com |
 | displayName | string | System Administrator |
-| role | string | admin |
+| role | string | super_admin |
 | createdAt | timestamp | [current timestamp] |
 | lastLoginAt | timestamp | [current timestamp] |
 | isActive | boolean | true |

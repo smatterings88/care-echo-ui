@@ -38,7 +38,7 @@ const createInitialAdmin = async () => {
       uid: userCredential.user.uid,
       email: 'admin@careecho.com',
       displayName: 'System Administrator',
-      role: 'admin',
+      role: 'super_admin',
       createdAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
       isActive: true,

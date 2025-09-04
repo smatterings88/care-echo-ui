@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (!userData) {
             // Create a temporary user object if Firestore data doesn't exist
-            // Default to 'user' role for new users (not admin)
+            // Default to 'user' role for new users (not super_admin)
             userData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -197,15 +197,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Validate that agency is assigned for all users except admins
-      if (userData.role === 'manager') {
-        // Managers need at least one agency assigned
+      if (userData.role === 'org_admin') {
+        // Org_admins need at least one agency assigned
         if (!userData.agencyIds || userData.agencyIds.length === 0) {
-          throw new Error('Agency assignment is required for managers');
+          throw new Error('Agency assignment is required for org_admins');
         }
-      } else if (userData.role !== 'admin') {
-        // Other users (except admins) need a single agency assigned
+      } else if (userData.role !== 'super_admin') {
+        // Other users (except super_admins) need a single agency assigned
         if (!userData.agencyId) {
-          throw new Error('Agency assignment is required for all users except admins');
+          throw new Error('Agency assignment is required for all users except super_admins');
         }
       }
 
@@ -242,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } as Partial<UserData>;
 
         const withAgencyId = userData.agencyId ? { agencyId: userData.agencyId } : {};
-        const withAgencyIds = (userData.role === 'manager' && userData.agencyIds && userData.agencyIds.length > 0)
+        const withAgencyIds = (userData.role === 'org_admin' && userData.agencyIds && userData.agencyIds.length > 0)
           ? { agencyIds: userData.agencyIds }
           : {};
 
@@ -251,8 +251,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
         // If user is associated with agencies, update agency user counts
-        if (userData.role === 'manager' && userData.agencyIds) {
-          // For managers, update user count for all assigned agencies
+        if (userData.role === 'org_admin' && userData.agencyIds) {
+          // For org_admins, update user count for all assigned agencies
           for (const agencyId of userData.agencyIds) {
             const agencyRef = doc(db, 'agencies', agencyId);
             const agencyDoc = await getDoc(agencyRef);
@@ -341,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (!userData) {
               // Create a temporary user object if Firestore data doesn't exist
-              // Default to 'user' role for new users (not admin)
+              // Default to 'user' role for new users (not super_admin)
               userData = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
@@ -509,9 +509,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const roleHierarchy: Record<UserRole, number> = {
       user: 1,
-      agency: 2,
-      manager: 3,
-      admin: 4,
+      site_admin: 2,
+      org_admin: 3,
+      super_admin: 4,
     };
 
     return roleHierarchy[state.user.role] >= roleHierarchy[requiredRole];

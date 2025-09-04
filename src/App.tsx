@@ -31,12 +31,12 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
-              <ProtectedRoute requiredRole="manager">
+              <ProtectedRoute requiredRole="org_admin">
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/analytics" element={
-              <ProtectedRoute requiredRole="agency">
+              <ProtectedRoute requiredRole="site_admin">
                 <AnalyticsDashboard />
               </ProtectedRoute>
             } />

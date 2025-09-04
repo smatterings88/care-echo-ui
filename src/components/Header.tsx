@@ -68,15 +68,15 @@ const Header = () => {
                 End Shift Check-In
               </Link>
               
-              {/* Admins and managers get admin panel */}
-              {hasPermission('manager') && (
-                <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-                  Admin Panel
-                </Link>
-              )}
-              
-              {/* Agency users and admins get analytics */}
-              {hasPermission('agency') && (
+                      {/* Super_admins and org_admins get admin panel */}
+        {hasPermission('org_admin') && (
+          <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+            Admin Panel
+          </Link>
+        )}
+
+        {/* Site_admins and super_admins get analytics */}
+        {hasPermission('site_admin') && (
                 <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
                   Analytics
                 </Link>
@@ -107,9 +107,9 @@ const Header = () => {
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      user.role === 'admin' ? 'bg-brand-red-600 text-white' :
-                      user.role === 'manager' ? 'bg-purple-600 text-white' :
-                      user.role === 'agency' ? 'bg-accent-teal text-white' :
+                              user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
                       'bg-neutral-200 text-neutral-700'
                     }`}>
                       {user.role}
@@ -138,7 +138,7 @@ const Header = () => {
                     <span>End Shift Check-In</span>
                   </Link>
                 </DropdownMenuItem>
-                {hasPermission('agency') && (
+                {hasPermission('site_admin') && (
                   <DropdownMenuItem asChild>
                     <Link to="/analytics" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
@@ -146,7 +146,7 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {hasPermission('manager') && (
+                {hasPermission('org_admin') && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />

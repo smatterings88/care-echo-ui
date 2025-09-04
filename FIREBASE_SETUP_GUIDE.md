@@ -31,7 +31,7 @@
 |-------|------|-------|
 | email | string | admin@careecho.com |
 | displayName | string | System Administrator |
-| role | string | admin |
+| role | string | super_admin |
 | createdAt | timestamp | [current timestamp] |
 | lastLoginAt | timestamp | [current timestamp] |
 | isActive | boolean | true |

@@ -1,55 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - users can read their own data, admins can read/write all, managers can read users from their assigned agencies
+    // Users collection - users can read their own data, super_admins can read/write all, org_admins can read users from their assigned agencies
     match /users/{userId} {
       allow read: if request.auth != null && (
         request.auth.uid == userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' && 
          resource.data.agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
 
-      // Allow create by admins, and by managers only for regular users within their assigned agencies
+      // Allow create by super_admins, and by org_admins only for regular users within their assigned agencies
       allow create: if request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
         (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' &&
           request.resource.data.role == 'user' &&
           request.resource.data.agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds
         )
       );
 
-      // Allow updates/deletes by the user themselves or admins
+      // Allow updates/deletes by the user themselves or super_admins
       allow update, delete: if request.auth != null && (
         request.auth.uid == userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
       );
     }
     
-    // Agencies collection - admins can read/write, agency users can read their agency, managers can read their assigned agencies
+    // Agencies collection - super_admins can read/write, site_admin users can read their agency, org_admins can read their assigned agencies
     match /agencies/{agencyId} {
       allow read: if request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'site_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == agencyId ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' && 
          agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
       allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     
     // Surveys collection - users can create their own surveys, read their own and agency surveys
     match /surveys/{surveyId} {
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'site_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' ||
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == resource.data.agencyId) ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' && 
          resource.data.agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
       allow create: if request.auth != null && (
@@ -57,7 +57,7 @@ service cloud.firestore {
       );
       allow update, delete: if request.auth != null && (
         request.auth.uid == resource.data.userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
       );
     }
     

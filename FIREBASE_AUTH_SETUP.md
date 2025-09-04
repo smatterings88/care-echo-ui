@@ -43,7 +43,7 @@ CareEcho implements a complete role-based authentication system using Firebase A
   uid: string;                    // Firebase Auth UID
   email: string;                  // User email
   displayName: string;            // Full name
-  role: 'admin' | 'agency' | 'user';
+  role: 'super_admin' | 'site_admin' | 'user';
   agencyId?: string;              // Required for users
   agencyName?: string;            // For user display
   createdAt: Date;
@@ -83,19 +83,19 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && (
         request.auth.uid == userId || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
       );
     }
     
     // Agencies - admins can read/write, agency users can read their agency
     match /agencies/{agencyId} {
       allow read: if request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agency' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'site_admin' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId == agencyId
       );
       allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
   }
 }
@@ -172,7 +172,7 @@ hasPermission(requiredRole: UserRole): boolean
 
 ### Protected Routes
 ```typescript
-<ProtectedRoute requiredRole="admin">
+<ProtectedRoute requiredRole="super_admin">
   <AdminDashboard />
 </ProtectedRoute>
 

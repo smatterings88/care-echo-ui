@@ -49,7 +49,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check agency association if required
-  if (requireAgency && user.role !== 'admin' && !user.agencyId) {
+      if (requireAgency && user.role !== 'super_admin' && !user.agencyId) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md">

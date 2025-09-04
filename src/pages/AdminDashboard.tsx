@@ -94,9 +94,9 @@ const AdminDashboard = () => {
     loadData();
   }, []);
 
-  // When opening Create User, prefill restrictions for agency creators
+  // When opening Create User, prefill restrictions for site_admin creators
   useEffect(() => {
-    if (showCreateUser && user?.role === 'agency') {
+    if (showCreateUser && user?.role === 'site_admin') {
       setUserForm(prev => ({
         ...prev,
         role: 'user',
@@ -111,15 +111,15 @@ const AdminDashboard = () => {
       let agenciesData: AgencyData[] = [];
       let usersData: UserData[] = [];
 
-      if (user?.role === 'admin') {
+      if (user?.role === 'super_admin') {
         [agenciesData, usersData] = await Promise.all([
           getAgencies(),
           getAllUsers(),
         ]);
-      } else if (user?.role === 'manager' && user.agencyIds && user.agencyIds.length > 0) {
+      } else if (user?.role === 'org_admin' && user.agencyIds && user.agencyIds.length > 0) {
         agenciesData = await getAgenciesByIds(user.agencyIds);
         usersData = await getUsersByAgencyIds(user.agencyIds);
-      } else if (user?.role === 'agency' && user.agencyId) {
+      } else if (user?.role === 'site_admin' && user.agencyId) {
         agenciesData = (await getAgencies()).filter(a => a.id === user.agencyId);
         usersData = await getUsersByAgency(user.agencyId);
       } else {
@@ -151,21 +151,21 @@ const AdminDashboard = () => {
     setCreateUserError('');
     
     try {
-      // Enforce agency assignment requirement for non-admin users
-      if (userForm.role !== 'admin' && userForm.role !== 'manager' && !userForm.agencyId) {
-        setCreateUserError('Please select an agency for the new user.');
-        return;
-      }
+          // Enforce agency assignment requirement for non-super_admin users
+    if (userForm.role !== 'super_admin' && userForm.role !== 'org_admin' && !userForm.agencyId) {
+      setCreateUserError('Please select an agency for the new user.');
+      return;
+    }
 
-      // Enforce agency assignment requirement for managers
-      if (userForm.role === 'manager' && (!userForm.agencyIds || userForm.agencyIds.length === 0)) {
+    // Enforce agency assignment requirement for org_admins
+    if (userForm.role === 'org_admin' && (!userForm.agencyIds || userForm.agencyIds.length === 0)) {
         setCreateUserError('Please select at least one agency for the manager.');
         return;
       }
 
       // Enforce agency user constraints: force role=user and agencyId to creator's agency
       let payload: CreateUserData;
-      if (user?.role === 'agency') {
+      if (user?.role === 'site_admin') {
         payload = {
           email: userForm.email,
           password: userForm.password,
@@ -173,8 +173,8 @@ const AdminDashboard = () => {
           role: 'user',
           agencyId: user.agencyId || '',
         };
-      } else if (user?.role === 'manager') {
-        // Managers can only create users for their assigned agencies
+      } else if (user?.role === 'org_admin') {
+        // Org_admins can only create users for their assigned agencies
         payload = {
           email: userForm.email,
           password: userForm.password,
@@ -398,8 +398,8 @@ const AdminDashboard = () => {
                     <p className="text-neutral-600">{user.email}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'admin' ? 'bg-brand-red-600 text-white' :
-                        user.role === 'agency' ? 'bg-accent-teal text-white' :
+                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
                         'bg-neutral-200 text-neutral-700'
                       }`}>
                         {user.role}
@@ -538,11 +538,11 @@ const AdminDashboard = () => {
                     required
                   />
                 </div>
-                {user?.role === 'agency' ? (
+                {user?.role === 'site_admin' ? (
                   <div className="text-sm text-neutral-600">
                     This user will be assigned to your agency automatically.
                   </div>
-                ) : user?.role === 'manager' ? (
+                ) : user?.role === 'org_admin' ? (
                   <div className="text-sm text-neutral-600">
                     You can create users for your assigned agencies.
                   </div>
@@ -559,19 +559,19 @@ const AdminDashboard = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="agency">Agency</SelectItem>
-                          {user?.role === 'admin' && (
-                            <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="site_admin">Site Admin</SelectItem>
+                          {user?.role === 'super_admin' && (
+                            <SelectItem value="org_admin">Org Admin</SelectItem>
                           )}
-                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="super_admin">Super Admin</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label htmlFor="agencyId">
-                          {userForm.role === 'manager' ? 'Assign Agencies' : 'Assign Agency'} 
-                          {userForm.role !== 'admin' ? '*' : '(optional)'}
+                          {userForm.role === 'org_admin' ? 'Assign Agencies' : 'Assign Agency'} 
+                          {userForm.role !== 'super_admin' ? '*' : '(optional)'}
                         </Label>
                         <Button
                           type="button"
@@ -584,7 +584,7 @@ const AdminDashboard = () => {
                           Add Agency
                         </Button>
                       </div>
-                      {userForm.role === 'manager' ? (
+                      {userForm.role === 'org_admin' ? (
                         <div className="space-y-2">
                           <Select
                             value=""
@@ -643,7 +643,7 @@ const AdminDashboard = () => {
                         <Select
                           value={userForm.agencyId || 'none'}
                           onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
-                          required={userForm.role !== 'admin'}
+                          required={userForm.role !== 'super_admin'}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select an agency" />
@@ -652,8 +652,8 @@ const AdminDashboard = () => {
                             <SelectItem value="none">None</SelectItem>
                             {agencies
                               .filter(agency => 
-                                user?.role === 'admin' || 
-                                (user?.role === 'manager' && user?.agencyIds?.includes(agency.id))
+                                user?.role === 'super_admin' || 
+                                (user?.role === 'org_admin' && user?.agencyIds?.includes(agency.id))
                               )
                               .map((a) => (
                                 <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -707,8 +707,8 @@ const AdminDashboard = () => {
                         <p className="text-neutral-600 text-sm">{u.email}</p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        u.role === 'admin' ? 'bg-brand-red-600 text-white' :
-                        u.role === 'agency' ? 'bg-accent-teal text-white' :
+                        u.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        u.role === 'site_admin' ? 'bg-accent-teal text-white' :
                         'bg-neutral-200 text-neutral-700'
                       }`}>
                         {u.role}
@@ -989,16 +989,16 @@ const AdminDashboard = () => {
                           const agencyMatch = agencies.find(a => a.id === agencyVal) ||
                             agencies.find(a => (a.name || '').toLowerCase() === agencyVal.toLowerCase());
                           const resolvedAgencyId = agencyMatch?.id || '';
-                          if (!resolvedAgencyId && user?.role !== 'agency') {
+                          if (!resolvedAgencyId && user?.role !== 'site_admin') {
                             throw new Error(`Agency not found: '${agencyVal}'`);
                           }
 
                           // Enforce creator role constraints
                           let payload: CreateUserData;
-                          if (user?.role === 'agency') {
+                          if (user?.role === 'site_admin') {
                             payload = { email, password, displayName, role: 'user', agencyId: user.agencyId || '' };
-                          } else if (user?.role === 'manager') {
-                            // Managers can only create users for their assigned agencies
+                          } else if (user?.role === 'org_admin') {
+                            // Org_admins can only create users for their assigned agencies
                             const chosenAgencyId = resolvedAgencyId && user.agencyIds?.includes(resolvedAgencyId) ? resolvedAgencyId : '';
                             if (!chosenAgencyId) throw new Error('Manager can only assign users to own agencies');
                             payload = { email, password, displayName, role: 'user', agencyId: chosenAgencyId };
