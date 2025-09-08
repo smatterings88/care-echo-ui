@@ -749,8 +749,11 @@ const AdminDashboard = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="agency">Agency</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="site_admin">Site Admin</SelectItem>
+                      {user?.role === 'super_admin' && (
+                        <SelectItem value="org_admin">Org Admin</SelectItem>
+                      )}
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
