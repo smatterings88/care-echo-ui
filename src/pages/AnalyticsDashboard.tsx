@@ -721,12 +721,19 @@ const AnalyticsDashboard = () => {
           </Card>
         )}
 
-        {/* Recent Responses - Only show for super_admin users */}
-        {user?.role === 'super_admin' && (
+        {/* Recent Responses - Show for all admin users */}
+        {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'site_admin') && (
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-neutral-900">Recent Responses</h3>
               <Eye className="h-5 w-5 text-neutral-600" />
+            </div>
+            {/* Debug info */}
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+              <p>Debug: User role: {user?.role}</p>
+              <p>Debug: Responses count: {filteredResponses.length}</p>
+              <p>Debug: Total responses: {recentResponses.length}</p>
+              <p>Debug: Can see recent responses: {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'site_admin') ? 'Yes' : 'No'}</p>
             </div>
             <div className="space-y-4">
               {filteredResponses.length === 0 ? (
@@ -745,7 +752,7 @@ const AnalyticsDashboard = () => {
                             <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-neutral-300 hover:bg-neutral-100">
                                   <ChevronDown className="h-3 w-3" />
                                 </Button>
                               </DropdownMenuTrigger>
