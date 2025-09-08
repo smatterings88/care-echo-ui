@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   ArrowLeft, 
   TrendingUp, 
@@ -17,24 +15,24 @@ import {
   LineChart,
   Filter,
   RefreshCw,
-  Eye,
-  Clock,
   Heart,
   AlertTriangle,
   Smile,
   Meh,
-  Frown,
-  MessageSquare,
-  Coffee,
-  Users as UsersIcon,
-  Heart as HeartIcon,
-  Activity as ActivityIcon,
-  ChevronDown,
-  User
+  Frown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SurveyAnalytics, SurveyResponse, SurveyFilters } from "@/types/survey";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ChartContainer,
   ChartTooltip,
@@ -49,7 +47,6 @@ const AnalyticsDashboard = () => {
   const { toast } = useToast();
   const { user, getSurveyAnalytics, getSurveyResponses, getAgencies } = useAuth();
   const [analytics, setAnalytics] = useState<SurveyAnalytics | null>(null);
-  const [recentResponses, setRecentResponses] = useState<SurveyResponse[]>([]);
   const [agencies, setAgencies] = useState<Array<{id: string, name: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,9 +131,6 @@ const AnalyticsDashboard = () => {
       const analyticsData = await getSurveyAnalytics(filters);
       setAnalytics(analyticsData);
       
-      // Get recent responses with filters (last 20 for better analysis)
-      const responses = await getSurveyResponses(filters);
-      setRecentResponses(responses.slice(0, 20));
     } catch (error) {
       console.error('Error loading analytics:', error);
       toast({
@@ -150,16 +144,6 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  const getMoodEmoji = (mood: string) => {
-    const emojis: Record<string, string> = {
-      great: "😃",
-      okay: "🙂", 
-      tired: "😐",
-      stressed: "😔",
-      overwhelmed: "😢"
-    };
-    return emojis[mood] || "😐";
-  };
 
   const getMoodIcon = (mood: string) => {
     const icons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -195,100 +179,13 @@ const AnalyticsDashboard = () => {
     return colors[concern] || "#6b7280";
   };
 
-  // Support response analysis functions
-  const analyzeWordFrequency = (responses: SurveyResponse[]) => {
-    const supportResponses = responses
-      .filter(r => r.responses.support && r.responses.support.trim().length > 0)
-      .map(r => r.responses.support);
-    
-    const words = supportResponses
-      .flatMap(r => r.toLowerCase().split(/\s+/))
-      .map(word => word.replace(/[^\w]/g, ''))
-      .filter(word => word.length > 2 && !['the', 'and', 'for', 'with', 'that', 'this', 'they', 'have', 'from', 'their', 'would', 'there', 'could', 'been', 'were', 'will', 'more', 'when', 'said', 'each', 'which', 'time', 'them', 'some', 'make', 'into', 'than', 'first', 'been', 'its', 'after', 'most', 'other', 'many', 'then', 'these', 'so', 'people', 'may', 'well', 'only', 'very', 'just', 'now', 'over', 'think', 'also', 'around', 'another', 'even', 'through', 'back', 'years', 'where', 'much', 'before', 'mean', 'those', 'right', 'your', 'good', 'should', 'because', 'each', 'any', 'three', 'state', 'never', 'become', 'between', 'really', 'something', 'another', 'rather', 'though', 'against', 'always', 'something', 'every', 'often', 'together', 'shall', 'might', 'while', 'another', 'enough', 'almost', 'since', 'never', 'every', 'always', 'sometimes', 'usually', 'often', 'rarely', 'never'].includes(word));
-    
-    const wordFreq: Record<string, number> = {};
-    words.forEach(word => {
-      wordFreq[word] = (wordFreq[word] || 0) + 1;
-    });
-    
-    // Sort by frequency and take top 20
-    return Object.entries(wordFreq)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 20)
-      .map(([word, count]) => ({ word, count }));
-  };
-
-  const categorizeSupportResponses = (responses: SurveyResponse[]) => {
-    const categories = {
-      "Social Support": 0,
-      "Self-Care": 0,
-      "Patient Interaction": 0,
-      "Spiritual": 0,
-      "Physical": 0,
-      "Other": 0
-    };
-    
-    const supportResponses = responses
-      .filter(r => r.responses.support && r.responses.support.trim().length > 0)
-      .map(r => r.responses.support);
-    
-    supportResponses.forEach(response => {
-      const lower = response.toLowerCase();
-      if (lower.includes('colleague') || lower.includes('team') || lower.includes('coworker') || lower.includes('friend') || lower.includes('family') || lower.includes('support')) {
-        categories["Social Support"]++;
-      } else if (lower.includes('coffee') || lower.includes('break') || lower.includes('rest') || lower.includes('music') || lower.includes('food') || lower.includes('lunch') || lower.includes('dinner')) {
-        categories["Self-Care"]++;
-      } else if (lower.includes('patient') || lower.includes('resident') || lower.includes('smile') || lower.includes('thank') || lower.includes('appreciate') || lower.includes('grateful')) {
-        categories["Patient Interaction"]++;
-      } else if (lower.includes('prayer') || lower.includes('meditation') || lower.includes('faith') || lower.includes('god') || lower.includes('spiritual') || lower.includes('blessed')) {
-        categories["Spiritual"]++;
-      } else if (lower.includes('exercise') || lower.includes('walk') || lower.includes('workout') || lower.includes('run') || lower.includes('gym') || lower.includes('yoga')) {
-        categories["Physical"]++;
-      } else {
-        categories["Other"]++;
-      }
-    });
-    
-    return Object.entries(categories)
-      .filter(([, count]) => count > 0)
-      .map(([category, count]) => ({
-        category,
-        count,
-        color: getSupportCategoryColor(category)
-      }));
-  };
-
-  const getSupportCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      "Social Support": "#3b82f6", // blue-500
-      "Self-Care": "#10b981", // green-500
-      "Patient Interaction": "#8b5cf6", // violet-500
-      "Spiritual": "#f59e0b", // amber-500
-      "Physical": "#ef4444", // red-500
-      "Other": "#6b7280" // gray-500
-    };
-    return colors[category] || "#6b7280";
-  };
-
-  const getSupportCategoryIcon = (category: string) => {
-    const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-      "Social Support": UsersIcon,
-      "Self-Care": Coffee,
-      "Patient Interaction": HeartIcon,
-      "Spiritual": HeartIcon,
-      "Physical": ActivityIcon,
-      "Other": MessageSquare
-    };
-    return icons[category] || MessageSquare;
-  };
 
   // Prepare data for charts
   const moodChartData = analytics?.responsesByMood ? 
     Object.entries(analytics.responsesByMood).map(([mood, count]) => ({
       name: mood.charAt(0).toUpperCase() + mood.slice(1),
       value: count,
-      color: getMoodColor(mood),
-      emoji: getMoodEmoji(mood)
+      color: getMoodColor(mood)
     })) : [];
 
   const concernChartData = analytics?.responsesByConcern ?
@@ -305,16 +202,6 @@ const AnalyticsDashboard = () => {
       avgMood: trend.averageMood
     })) : [];
 
-  // Support analysis data
-  const supportWordData = analyzeWordFrequency(recentResponses);
-  const supportCategoryData = categorizeSupportResponses(recentResponses);
-
-  const filteredResponses = recentResponses.filter(response => {
-    if (surveyTypeFilter !== "all" && response.surveyType !== surveyTypeFilter) {
-      return false;
-    }
-    return true;
-  });
 
   if (loading) {
     return (
@@ -362,7 +249,60 @@ const AnalyticsDashboard = () => {
             </Button>
           </div>
           <div className="text-sm text-neutral-700 font-medium">
-            {user?.displayName}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 py-1 flex items-center space-x-2 hover:bg-neutral-100"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback>
+                        {(user.displayName || '').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">{user.displayName}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                        'bg-neutral-200 text-neutral-700'
+                      }`}
+                    >
+                      {user.role === 'super_admin' ? 'Super Admin' :
+                       user.role === 'org_admin' ? 'Org Admin' :
+                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                        'bg-neutral-200 text-neutral-700'
+                      }`}
+                    >
+                      {user.role === 'super_admin' ? 'Super Admin' :
+                       user.role === 'org_admin' ? 'Org Admin' :
+                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </header>
@@ -582,83 +522,6 @@ const AnalyticsDashboard = () => {
           </Card>
         </div>
 
-        {/* Support & Energy Analysis Section */}
-        {supportWordData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Support Word Cloud */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-neutral-900">Support Themes</h3>
-                <MessageSquare className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {supportWordData.map((item, index) => {
-                  const maxCount = Math.max(...supportWordData.map(d => d.count));
-                  const fontSize = Math.max(14, Math.min(32, (item.count / maxCount) * 24 + 12));
-                  const opacity = Math.max(0.3, item.count / maxCount);
-                  
-                  return (
-                    <span 
-                      key={item.word}
-                      className="px-3 py-1 rounded-full text-white font-medium cursor-pointer hover:scale-105 transition-transform"
-                      style={{
-                        fontSize: `${fontSize}px`,
-                        backgroundColor: `rgba(59, 130, 246, ${opacity})`,
-                        boxShadow: `0 2px 4px rgba(59, 130, 246, ${opacity * 0.3})`
-                      }}
-                      title={`${item.word}: ${item.count} mentions`}
-                    >
-                      {item.word}
-                    </span>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-neutral-500 text-center mt-4">
-                Word size indicates frequency of mention in support responses
-              </p>
-            </Card>
-
-            {/* Support Categories Chart */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-neutral-900">Support Sources</h3>
-                <BarChart3 className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={supportCategoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="category" stroke="#6b7280" fontSize={12} />
-                    <YAxis stroke="#6b7280" fontSize={12} />
-                    <Tooltip 
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          const IconComponent = getSupportCategoryIcon(data.category);
-                          return (
-                            <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <IconComponent className="h-4 w-4" />
-                                <span className="font-semibold">{data.category}</span>
-                              </div>
-                              <p className="text-sm text-neutral-600">Responses: <span className="font-semibold">{data.count}</span></p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {supportCategoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </div>
-        )}
 
         {/* Trends Chart */}
         {trendChartData.length > 0 && (
@@ -721,111 +584,6 @@ const AnalyticsDashboard = () => {
           </Card>
         )}
 
-        {/* Recent Responses - Show for all admin users */}
-        {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'site_admin') && (
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-neutral-900">Recent Responses</h3>
-              <Eye className="h-5 w-5 text-neutral-600" />
-            </div>
-            {/* Debug info */}
-            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-              <p>Debug: User role: {user?.role}</p>
-              <p>Debug: Responses count: {filteredResponses.length}</p>
-              <p>Debug: Total responses: {recentResponses.length}</p>
-              <p>Debug: Can see recent responses: {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'site_admin') ? 'Yes' : 'No'}</p>
-            </div>
-            <div className="space-y-4">
-              {filteredResponses.length === 0 ? (
-                <div className="text-center py-8">
-                  <Clock className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
-                  <p className="text-neutral-600">No responses found with current filters</p>
-                </div>
-              ) : (
-                filteredResponses.map((response) => (
-                  <div key={response.id} className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{getMoodEmoji(response.responses.mood)}</span>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-neutral-300 hover:bg-neutral-100">
-                                  <ChevronDown className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-56">
-                                <DropdownMenuItem disabled>
-                                  <User className="mr-2 h-4 w-4" />
-                                  <span className="font-medium">{response.userDisplayName}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem disabled>
-                                  <span className="text-sm text-neutral-600">{response.userEmail}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem disabled>
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    response.userRole === 'super_admin' ? 'bg-brand-red-600 text-white' :
-                                    response.userRole === 'org_admin' ? 'bg-purple-600 text-white' :
-                                    response.userRole === 'site_admin' ? 'bg-accent-teal text-white' :
-                                    'bg-neutral-200 text-neutral-700'
-                                  }`}>
-                                    {response.userRole === 'super_admin' ? 'Super Admin' :
-                                     response.userRole === 'org_admin' ? 'Org Admin' :
-                                     response.userRole === 'site_admin' ? 'Site Admin' :
-                                     'User'}
-                                  </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem disabled>
-                                  <span className="text-sm text-neutral-600">{response.agencyName}</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                          <p className="text-sm text-neutral-600">{response.agencyName}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${
-                            response.surveyType === 'start' 
-                              ? 'border-accent-teal-200 text-accent-teal-700 bg-accent-teal-50' 
-                              : 'border-brand-red-200 text-brand-red-700 bg-brand-red-50'
-                          }`}
-                        >
-                          {response.surveyType === 'start' ? 'Start' : 'End'} Shift
-                        </Badge>
-                        <span className="text-xs text-neutral-500">
-                          {new Date(response.completedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-neutral-700">Concern:</span>
-                        <span className="text-sm text-neutral-600">{response.responses.mainConcern}</span>
-                        {response.responses.mainConcernOther && (
-                          <span className="text-sm text-neutral-500 italic">- {response.responses.mainConcernOther}</span>
-                        )}
-                      </div>
-                      {response.responses.support && (
-                        <div className="flex items-start space-x-2">
-                          <span className="text-sm font-medium text-neutral-700">Support:</span>
-                          <span className="text-sm text-neutral-600">{response.responses.support}</span>
-                        </div>
-                      )}
-                      <div className="mt-3 p-3 bg-neutral-50 rounded-lg">
-                        <p className="text-sm text-neutral-700 italic">"{response.reflection}"</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-        )}
       </div>
     </div>
   );

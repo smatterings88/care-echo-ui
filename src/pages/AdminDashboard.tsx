@@ -4,6 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -296,9 +305,65 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-neutral-900">Admin Dashboard</h1>
             <p className="text-neutral-600 mt-2">Manage users and agencies</p>
           </div>
-          <Button asChild variant="outline" className="focus-ring">
-            <Link to="/">← Back to landing</Link>
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button asChild variant="outline" className="focus-ring">
+              <Link to="/">← Back to landing</Link>
+            </Button>
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 py-1 flex items-center space-x-2 hover:bg-neutral-100"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src="/placeholder.svg" />
+                      <AvatarFallback>
+                        {(user.displayName || '').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">{user.displayName}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                        'bg-neutral-200 text-neutral-700'
+                      }`}
+                    >
+                      {user.role === 'super_admin' ? 'Super Admin' :
+                       user.role === 'org_admin' ? 'Org Admin' :
+                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                        'bg-neutral-200 text-neutral-700'
+                      }`}
+                    >
+                      {user.role === 'super_admin' ? 'Super Admin' :
+                       user.role === 'org_admin' ? 'Org Admin' :
+                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </div>
 
