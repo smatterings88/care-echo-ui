@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   ArrowLeft, 
   TrendingUp, 
@@ -27,7 +28,9 @@ import {
   Coffee,
   Users as UsersIcon,
   Heart as HeartIcon,
-  Activity as ActivityIcon
+  Activity as ActivityIcon,
+  ChevronDown,
+  User
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -738,7 +741,41 @@ const AnalyticsDashboard = () => {
                       <div className="flex items-center space-x-3">
                         <span className="text-2xl">{getMoodEmoji(response.responses.mood)}</span>
                         <div>
-                          <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-semibold text-neutral-900">{response.userDisplayName}</p>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-56">
+                                <DropdownMenuItem disabled>
+                                  <User className="mr-2 h-4 w-4" />
+                                  <span className="font-medium">{response.userDisplayName}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>
+                                  <span className="text-sm text-neutral-600">{response.userEmail}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    response.userRole === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                                    response.userRole === 'org_admin' ? 'bg-purple-600 text-white' :
+                                    response.userRole === 'site_admin' ? 'bg-accent-teal text-white' :
+                                    'bg-neutral-200 text-neutral-700'
+                                  }`}>
+                                    {response.userRole === 'super_admin' ? 'Super Admin' :
+                                     response.userRole === 'org_admin' ? 'Org Admin' :
+                                     response.userRole === 'site_admin' ? 'Site Admin' :
+                                     'User'}
+                                  </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>
+                                  <span className="text-sm text-neutral-600">{response.agencyName}</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                           <p className="text-sm text-neutral-600">{response.agencyName}</p>
                         </div>
                       </div>
