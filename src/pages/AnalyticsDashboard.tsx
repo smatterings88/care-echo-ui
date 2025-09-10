@@ -348,13 +348,13 @@ const AnalyticsDashboard = () => {
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder={
-                  user?.role === 'super_admin' ? "All agencies" : 
-                  user?.role === 'org_admin' ? "All my agencies" : "All agencies"
+                  user?.role === 'super_admin' ? "All facilities" : 
+                  user?.role === 'org_admin' ? "All my facilities" : "All facilities"
                 } />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">
-                  {user?.role === 'super_admin' ? "All agencies" : "All my agencies"}
+                  {user?.role === 'super_admin' ? "All facilities" : "All my facilities"}
                 </SelectItem>
                 {agencies
                   .filter(agency => 

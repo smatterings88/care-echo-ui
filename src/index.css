@@ -127,6 +127,87 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* CareEcho Typography System */
+  
+  /* Headlines & CTAs (Poppins) */
+  .font-heading {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .text-h1 {
+    @apply font-heading font-bold text-4xl md:text-5xl lg:text-6xl;
+    letter-spacing: -0.02em;
+  }
+  
+  .text-h2 {
+    @apply font-heading font-semibold text-3xl md:text-4xl;
+    letter-spacing: -0.01em;
+  }
+  
+  .text-h3 {
+    @apply font-heading font-medium text-2xl md:text-3xl;
+    letter-spacing: -0.01em;
+  }
+  
+  .text-cta {
+    @apply font-heading font-semibold uppercase;
+    letter-spacing: 0.125rem; /* +2 tracking */
+  }
+  
+  /* Body Copy (Montserrat) */
+  .font-body {
+    font-family: 'Montserrat', sans-serif;
+  }
+  
+  .text-body {
+    @apply font-body font-normal text-base md:text-lg;
+    line-height: 1.6;
+  }
+  
+  .text-body-sm {
+    @apply font-body font-light text-sm;
+    line-height: 1.5;
+  }
+  
+  .text-caption {
+    @apply font-body font-medium text-sm;
+    line-height: 1.4;
+  }
+  
+  .text-label {
+    @apply font-body font-medium text-sm md:text-base;
+    line-height: 1.4;
+  }
+  
+  /* Special Use */
+  .text-quote {
+    @apply font-heading font-medium italic text-xl;
+    line-height: 1.5;
+  }
+  
+  .text-stats {
+    @apply font-heading font-bold text-2xl;
+    line-height: 1.2;
+  }
+  
+  /* Mobile Responsive Typography */
+  @media (max-width: 768px) {
+    .text-h1 {
+      @apply text-3xl;
+    }
+    
+    .text-h2 {
+      @apply text-2xl;
+    }
+    
+    .text-h3 {
+      @apply text-xl;
+    }
   }
 }
 
@@ -138,11 +219,18 @@ All colors MUST be HSL.
   }
 
   .btn-primary {
-    @apply bg-brand-red-600 text-white rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:bg-brand-red-700 hover:shadow-[0_2px_8px_-2px_rgba(186,55,59,0.3)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
+    @apply bg-brand-red-600 text-white rounded-xl px-6 py-3 text-cta transition-all duration-300 hover:bg-brand-red-700 hover:shadow-[0_2px_8px_-2px_rgba(186,55,59,0.3)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply bg-white text-neutral-900 rounded-xl px-6 py-3 font-medium transition-all duration-300 hover:bg-neutral-100 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2 border border-neutral-300;
+    @apply rounded-xl px-6 py-3 text-cta transition-colors border focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2;
+    background-color: #F3ECE9;
+    color: #090B0B;
+    border-color: #C1BEBC;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #D9D3D0;
   }
 
   .btn-disabled {

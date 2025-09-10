@@ -1,14 +1,33 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import Login from "@/pages/Login";
 
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Check if user can access surveys (authenticated and has agency association)
   const canAccessSurveys = user && (user.role === 'super_admin' || user.agencyId);
+  
+  // Redirect regular users to the new dashboard
+  if (user && user.role === 'user' && user.agencyId) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Handle analytics button click
+  const handleAnalyticsClick = () => {
+    if (user) {
+      // User is logged in, go to analytics
+      window.location.href = '/analytics';
+    } else {
+      // User is not logged in, show login modal
+      setShowLoginModal(true);
+    }
+  };
   
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -23,44 +42,49 @@ const Index = () => {
         />
         <div className="relative z-20 container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6 animate-fade-in">
+            <h1 className="text-h1 text-neutral-900 mb-6 animate-fade-in">
               Your CNAs Are Quitting.
             </h1>
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-6 animate-fade-in">
+            <h2 className="text-h2 text-neutral-900 mb-6 animate-fade-in">
               You Just Don't Know It Yet.
             </h2>
-            <p className="text-xl text-neutral-700 mb-4 animate-slide-up">
+            <p className="text-body text-neutral-700 mb-4 animate-slide-up">
               CareEcho spots burnout before it becomes a $5K replacement cost.
             </p>
-            <p className="text-lg text-neutral-600 mb-6 animate-slide-up">
+            <p className="text-body-sm text-neutral-600 mb-6 animate-slide-up">
               60-second check-ins. Anonymous alerts. Early intervention.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 animate-slide-up">
-              <Link to={canAccessSurveys ? "/survey?type=start" : "#"} onClick={(e) => !canAccessSurveys && e.preventDefault()}>
-                <button 
-                  className={`btn-primary w-full sm:w-64 ${!canAccessSurveys ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!canAccessSurveys}
-                >
-                  START SHIFT CHECK-IN
-                </button>
-              </Link>
-              <Link to={canAccessSurveys ? "/survey?type=end" : "#"} onClick={(e) => !canAccessSurveys && e.preventDefault()}>
-                <button
-                  className={`w-full sm:w-64 rounded-xl px-6 py-3 font-medium transition-colors border bg-[#F3ECE9] text-[#090B0B] border-[#C1BEBC] hover:bg-[#D9D3D0] focus:outline-none focus:ring-2 focus:ring-[#6DC8C5] focus:ring-offset-2 ${!canAccessSurveys ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!canAccessSurveys}
-                >
-                  END SHIFT CHECK-IN
-                </button>
-              </Link>
+            <div className="flex justify-center animate-slide-up">
+              <button 
+                onClick={handleAnalyticsClick}
+                className="btn-primary w-full sm:w-[17rem]"
+              >
+                View Analytics
+              </button>
             </div>
             <div className="mt-8 space-y-2 animate-slide-up">
-              <p className="text-neutral-900 font-semibold">Stop the turnover. Save the money. Protect your people.</p>
+              <p className="text-body text-neutral-900 font-semibold">Stop the turnover. Save the money. Protect your people.</p>
             </div>
           </div>
         </div>
       </section>
 
       <Footer />
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md relative">
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-700 text-2xl"
+            >
+              ×
+            </button>
+            <Login onSuccess={() => setShowLoginModal(false)} />
+          </div>
+        </div>
+      )}
 
     </div>
   );

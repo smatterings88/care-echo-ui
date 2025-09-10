@@ -60,31 +60,38 @@ const Header = () => {
           {/* Show different navigation based on user type */}
           {user ? (
             <>
+              {/* Regular users get dashboard link */}
+              {user.role === 'user' && (
+                <Link to="/dashboard" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
+                  Dashboard
+                </Link>
+              )}
+              
               {/* All logged-in users can access surveys */}
-              <Link to="/survey?type=start" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+              <Link to="/survey?type=start" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
                 Start Shift Check-In
               </Link>
-              <Link to="/survey?type=end" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+              <Link to="/survey?type=end" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
                 End Shift Check-In
               </Link>
               
-                      {/* Super_admins and org_admins get admin panel */}
-        {hasPermission('org_admin') && (
-          <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
-            Admin Panel
-          </Link>
-        )}
+              {/* Super_admins and org_admins get admin panel */}
+              {hasPermission('org_admin') && (
+                <Link to="/admin" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
+                  Admin Panel
+                </Link>
+              )}
 
-        {/* Site_admins and super_admins get analytics */}
-        {hasPermission('site_admin') && (
-                <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+              {/* Site_admins and super_admins get analytics */}
+              {hasPermission('site_admin') && (
+                <Link to="/analytics" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
                   Analytics
                 </Link>
               )}
             </>
           ) : (
             /* Non-logged in users see basic navigation */
-            <Link to="/" className="text-neutral-900 hover:text-brand-red-600 transition-colors font-medium focus-ring">
+            <Link to="/" className="text-neutral-900 hover:text-brand-red-600 transition-colors text-caption focus-ring">
               Home
             </Link>
           )}

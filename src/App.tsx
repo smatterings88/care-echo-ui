@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import UserDashboard from "./pages/UserDashboard";
 import Survey from "./pages/Survey";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -25,6 +26,11 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute requireAgency={true}>
+                <UserDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/survey" element={
               <ProtectedRoute requireAgency={true}>
                 <Survey />

@@ -87,7 +87,8 @@ const AdminDashboard = () => {
   const [userForm, setUserForm] = useState<CreateUserData>({
     email: '',
     password: '',
-    displayName: '',
+    firstName: '',
+    lastName: '',
     role: 'user',
     agencyId: '',
     agencyIds: [],
@@ -162,13 +163,13 @@ const AdminDashboard = () => {
     try {
           // Enforce agency assignment requirement for non-super_admin users
     if (userForm.role !== 'super_admin' && userForm.role !== 'org_admin' && !userForm.agencyId) {
-      setCreateUserError('Please select an agency for the new user.');
+      setCreateUserError('Please select a facility for the new user.');
       return;
     }
 
     // Enforce agency assignment requirement for org_admins
     if (userForm.role === 'org_admin' && (!userForm.agencyIds || userForm.agencyIds.length === 0)) {
-        setCreateUserError('Please select at least one agency for the manager.');
+        setCreateUserError('Please select at least one facility for the manager.');
         return;
       }
 
@@ -178,7 +179,8 @@ const AdminDashboard = () => {
         payload = {
           email: userForm.email,
           password: userForm.password,
-          displayName: userForm.displayName,
+          firstName: userForm.firstName,
+          lastName: userForm.lastName,
           role: 'user',
           agencyId: user.agencyId || '',
         };
@@ -187,7 +189,8 @@ const AdminDashboard = () => {
         payload = {
           email: userForm.email,
           password: userForm.password,
-          displayName: userForm.displayName,
+          firstName: userForm.firstName,
+          lastName: userForm.lastName,
           role: 'user',
           agencyId: userForm.agencyId || '',
         };
@@ -199,7 +202,8 @@ const AdminDashboard = () => {
       setUserForm({
         email: '',
         password: '',
-        displayName: '',
+        firstName: '',
+        lastName: '',
         role: 'user',
         agencyId: '',
         agencyIds: [],
@@ -250,8 +254,12 @@ const AdminDashboard = () => {
 
   const openEditUser = (u: UserData) => {
     setEditingUser(u);
+    // Handle backward compatibility - if firstName/lastName don't exist, parse from displayName
+    const firstName = u.firstName || (u.displayName ? u.displayName.split(' ')[0] : '');
+    const lastName = u.lastName || (u.displayName ? u.displayName.split(' ').slice(1).join(' ') : '');
     setEditForm({
-      displayName: u.displayName,
+      firstName,
+      lastName,
       role: u.role,
       agencyId: u.agencyId,
       isActive: u.isActive,
@@ -262,8 +270,14 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!editingUser) return;
     try {
+      const firstName = editForm.firstName || editingUser.firstName || '';
+      const lastName = editForm.lastName || editingUser.lastName || '';
+      const displayName = `${firstName} ${lastName}`.trim();
+      
       await updateUser(editingUser.uid, {
-        displayName: editForm.displayName || editingUser.displayName,
+        firstName,
+        lastName,
+        displayName,
         role: (editForm.role as UserRole) || editingUser.role,
         agencyId: editForm.agencyId,
         isActive: editForm.isActive ?? editingUser.isActive,
@@ -383,7 +397,7 @@ const AdminDashboard = () => {
             <div className="flex items-center">
               <Building2 className="h-8 w-8 text-accent-teal mr-4" />
               <div>
-                <p className="text-sm text-neutral-600">Total Agencies</p>
+                <p className="text-sm text-neutral-600">Total Facilities</p>
                 <p className="text-2xl font-bold text-neutral-900">{agencies.length}</p>
               </div>
             </div>
@@ -421,7 +435,7 @@ const AdminDashboard = () => {
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Agencies
+            Facilities
           </button>
         </div>
 
@@ -447,7 +461,7 @@ const AdminDashboard = () => {
               className="btn-primary"
             >
               <Building2 className="h-4 w-4 mr-2" />
-              Create Agency
+              Create Facility
             </Button>
           )}
         </div>
@@ -557,7 +571,7 @@ const AdminDashboard = () => {
             ))}
             {filteredAgencies.length === 0 && (
               <Card className="p-6">
-                <p className="text-neutral-600">No agencies yet. Create one to get started.</p>
+                <p className="text-neutral-600">No facilities yet. Create one to get started.</p>
               </Card>
             )}
           </div>
@@ -574,14 +588,25 @@ const AdminDashboard = () => {
                 </div>
               )}
               <form onSubmit={handleCreateUser} className="space-y-4">
-                <div>
-                  <Label htmlFor="displayName">Full Name</Label>
-                  <Input
-                    id="displayName"
-                    value={userForm.displayName}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, displayName: e.target.value }))}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={userForm.firstName}
+                      onChange={(e) => setUserForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={userForm.lastName}
+                      onChange={(e) => setUserForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
@@ -605,11 +630,11 @@ const AdminDashboard = () => {
                 </div>
                 {user?.role === 'site_admin' ? (
                   <div className="text-sm text-neutral-600">
-                    This user will be assigned to your agency automatically.
+                    This user will be assigned to your facility automatically.
                   </div>
                 ) : user?.role === 'org_admin' ? (
                   <div className="text-sm text-neutral-600">
-                    You can create users for your assigned agencies.
+                    You can create users for your assigned facilities.
                   </div>
                 ) : (
                   <>
@@ -635,7 +660,7 @@ const AdminDashboard = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label htmlFor="agencyId">
-                          {userForm.role === 'org_admin' ? 'Assign Agencies' : 'Assign Agency'} 
+                          {userForm.role === 'org_admin' ? 'Assign Facilities' : 'Assign Facility'} 
                           {userForm.role !== 'super_admin' ? '*' : '(optional)'}
                         </Label>
                         <Button
@@ -646,7 +671,7 @@ const AdminDashboard = () => {
                           className="text-xs"
                         >
                           <Building2 className="h-3 w-3 mr-1" />
-                          Add Agency
+                          Add Facility
                         </Button>
                       </div>
                       {userForm.role === 'org_admin' ? (
@@ -666,10 +691,10 @@ const AdminDashboard = () => {
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select agencies to assign" />
+                              <SelectValue placeholder="Select facilities to assign" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Select an agency</SelectItem>
+                              <SelectItem value="none">Select a facility</SelectItem>
                               {agencies.map((a) => (
                                 <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                               ))}
@@ -754,14 +779,14 @@ const AdminDashboard = () => {
         <Dialog open={!!openAgencyUsersFor} onOpenChange={(v) => !v && setOpenAgencyUsersFor(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Agency Users</DialogTitle>
+              <DialogTitle>Facility Users</DialogTitle>
               <DialogDescription>
-                List of users assigned to this agency.
+                List of users assigned to this facility.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 max-h-[50vh] overflow-auto">
               {users.filter(u => u.agencyId === openAgencyUsersFor).length === 0 ? (
-                <p className="text-neutral-600 text-sm">No users in this agency yet.</p>
+                <p className="text-neutral-600 text-sm">No users in this facility yet.</p>
               ) : (
                 users
                   .filter(u => u.agencyId === openAgencyUsersFor)
@@ -794,14 +819,25 @@ const AdminDashboard = () => {
             <Card className="w-full max-w-md p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Edit User</h2>
               <form onSubmit={submitEditUser} className="space-y-4">
-                <div>
-                  <Label htmlFor="editName">Full Name</Label>
-                  <Input
-                    id="editName"
-                    value={editForm.displayName || ''}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editFirstName">First Name</Label>
+                    <Input
+                      id="editFirstName"
+                      value={editForm.firstName || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editLastName">Last Name</Label>
+                    <Input
+                      id="editLastName"
+                      value={editForm.lastName || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="editRole">Role</Label>
@@ -823,7 +859,7 @@ const AdminDashboard = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="editAgency">Agency</Label>
+                  <Label htmlFor="editAgency">Facility</Label>
                   <Select
                     value={(editForm.agencyId ?? editingUser.agencyId) ?? 'none'}
                     onValueChange={(value: string) =>
@@ -925,10 +961,10 @@ const AdminDashboard = () => {
         {showCreateAgency && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md p-6">
-              <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Agency</h2>
+              <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Facility</h2>
               <form onSubmit={handleCreateAgency} className="space-y-4">
                 <div>
-                  <Label htmlFor="agencyName">Agency Name</Label>
+                  <Label htmlFor="agencyName">Facility Name</Label>
                   <Input
                     id="agencyName"
                     value={agencyForm.name}
@@ -938,7 +974,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="btn-primary flex-1">
-                    Create Agency
+                    Create Facility
                   </Button>
                   <Button
                     type="button"
@@ -957,13 +993,13 @@ const AdminDashboard = () => {
         {showCreateAgencyFromUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md p-6">
-              <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Agency</h2>
+              <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Facility</h2>
               <p className="text-sm text-neutral-600 mb-4">
-                Create a new agency to assign to the user you're creating.
+                Create a new facility to assign to the user you're creating.
               </p>
               <form onSubmit={handleCreateAgencyFromUser} className="space-y-4">
                 <div>
-                  <Label htmlFor="agencyNameFromUser">Agency Name</Label>
+                  <Label htmlFor="agencyNameFromUser">Facility Name</Label>
                   <Input
                     id="agencyNameFromUser"
                     value={agencyForm.name}
@@ -973,7 +1009,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="btn-primary flex-1">
-                    Create Agency
+                    Create Facility
                   </Button>
                   <Button
                     type="button"
@@ -998,14 +1034,14 @@ const AdminDashboard = () => {
               </div>
               <div className="space-y-4">
                 <p className="text-sm text-neutral-700">
-                  Paste CSV with headers: displayName,email,password,agency
+                  Paste CSV with headers: firstName,lastName,email,password,agency
                 </p>
                 <textarea
                   value={bulkCsvText}
                   onChange={(e) => setBulkCsvText(e.target.value)}
                   rows={10}
                   className="w-full border border-neutral-200 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300"
-                  placeholder={"displayName,email,password,agency\nJane Doe,jane@example.com,TempPass123,Acme Care Home"}
+                  placeholder={"firstName,lastName,email,password,agency\nJane,Doe,jane@example.com,TempPass123,Acme Care Home"}
                 />
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-neutral-500">
@@ -1028,7 +1064,7 @@ const AdminDashboard = () => {
                       const headers = lines[0].split(',').map(h => h.trim());
                       const idx = (name:string) => headers.indexOf(name);
                       const has = (name:string) => idx(name) !== -1;
-                      const required = ['displayName','email','password'];
+                      const required = ['firstName','lastName','email','password'];
                       for (const r of required) {
                         if (!has(r)) {
                           setBulkResults([{row:0,status:'error',message:`Missing required header: ${r}` }]);
@@ -1048,7 +1084,8 @@ const AdminDashboard = () => {
                           const raw = lines[i];
                           const cols = raw.split(',');
                           const get = (name:string) => cols[idx(name)]?.trim() || '';
-                          const displayName = get('displayName');
+                          const firstName = get('firstName');
+                          const lastName = get('lastName');
                           const email = get('email');
                           const password = get('password');
                           const role: UserRole = 'user'; // Bulk import restricted to users
@@ -1064,17 +1101,17 @@ const AdminDashboard = () => {
                           // Enforce creator role constraints
                           let payload: CreateUserData;
                           if (user?.role === 'site_admin') {
-                            payload = { email, password, displayName, role: 'user', agencyId: user.agencyId || '' };
+                            payload = { email, password, firstName, lastName, role: 'user', agencyId: user.agencyId || '' };
                           } else if (user?.role === 'org_admin') {
                             // Org_admins can only create users for their assigned agencies
                             const chosenAgencyId = resolvedAgencyId && user.agencyIds?.includes(resolvedAgencyId) ? resolvedAgencyId : '';
                             if (!chosenAgencyId) throw new Error('Manager can only assign users to own agencies');
-                            payload = { email, password, displayName, role: 'user', agencyId: chosenAgencyId };
+                            payload = { email, password, firstName, lastName, role: 'user', agencyId: chosenAgencyId };
                           } else {
                             // Admin can only bulk create users
                             const finalAgencyId = resolvedAgencyId;
                             if (!finalAgencyId) throw new Error('Agency is required for bulk user import');
-                            payload = { email, password, displayName, role, agencyId: finalAgencyId };
+                            payload = { email, password, firstName, lastName, role, agencyId: finalAgencyId };
                           }
 
                           await createUser(payload);

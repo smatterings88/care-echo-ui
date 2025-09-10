@@ -3,7 +3,9 @@ export type UserRole = 'super_admin' | 'org_admin' | 'site_admin' | 'user';
 export interface UserData {
   uid: string;
   email: string;
-  displayName: string;
+  firstName?: string; // Optional for backward compatibility
+  lastName?: string; // Optional for backward compatibility
+  displayName: string; // Computed from firstName + lastName or stored directly
   role: UserRole;
   agencyId?: string; // Required for users, optional for agency/admins
   agencyIds?: string[]; // For managers - multiple agencies
@@ -37,7 +39,8 @@ export interface LoginCredentials {
 export interface CreateUserData {
   email: string;
   password: string;
-  displayName: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   agencyId?: string;
   agencyIds?: string[]; // For managers

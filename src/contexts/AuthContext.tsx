@@ -224,9 +224,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const secondaryAuth = getAuth(getSecondaryApp());
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, userData.email, userData.password);
       
+      // Compute display name from firstName and lastName
+      const displayName = `${userData.firstName} ${userData.lastName}`.trim();
+      
       // Update display name in Firebase Auth
       await updateProfile(userCredential.user, {
-        displayName: userData.displayName,
+        displayName: displayName,
       });
 
       try {
@@ -234,7 +237,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const baseDoc = {
           uid: userCredential.user.uid,
           email: userData.email,
-          displayName: userData.displayName,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          displayName: displayName,
           role: userData.role as UserRole,
           createdAt: new Date(),
           lastLoginAt: new Date(),

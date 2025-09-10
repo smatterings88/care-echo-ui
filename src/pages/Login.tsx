@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
-const Login = () => {
+interface LoginProps {
+  onSuccess?: () => void;
+}
+
+const Login = ({ onSuccess }: LoginProps) => {
   const navigate = useNavigate();
   const { login, loading, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -49,7 +53,11 @@ const Login = () => {
     
     try {
       await login(formData);
-      navigate("/");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/");
+      }
     } catch (error: unknown) {
       console.error("Login error:", error);
     }
