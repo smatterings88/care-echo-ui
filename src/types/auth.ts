@@ -23,6 +23,19 @@ export interface AgencyData {
   createdAt: Date;
   isActive: boolean;
   userCount: number;
+  // Extended facility fields
+  address?: string;
+  timeZone?: string;
+  beds?: number;
+  numCNAs?: number;
+  logoUrl?: string;
+  mainPhone?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  billingContactName?: string;
+  billingContactPhone?: string;
+  billingContactEmail?: string;
 }
 
 export interface AuthState {
@@ -49,4 +62,17 @@ export interface CreateUserData {
 export interface CreateAgencyData {
   name: string;
   adminId: string;
+  // Extended (all optional at creation)
+  address?: string;
+  timeZone?: string;
+  beds?: number;
+  numCNAs?: number;
+  logoUrl?: string;
+  mainPhone?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  billingContactName?: string;
+  billingContactPhone?: string;
+  billingContactEmail?: string;
 }

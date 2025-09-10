@@ -79,13 +79,17 @@ const Header = () => {
                 </Link>
               )}
               
-              {/* All logged-in users can access surveys */}
-              <Link to="/survey?type=start" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
-                Start Shift Check-In
-              </Link>
-              <Link to="/survey?type=end" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
-                End Shift Check-In
-              </Link>
+              {/* Only regular users can access survey links */}
+              {user.role === 'user' && (
+                <>
+                  <Link to="/survey?type=start" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
+                    Start Shift Check-In
+                  </Link>
+                  <Link to="/survey?type=end" className="text-neutral-700 hover:text-brand-red-600 transition-colors text-caption focus-ring">
+                    End Shift Check-In
+                  </Link>
+                </>
+              )}
               
               {/* Super_admins and org_admins get admin panel */}
               {hasPermission('org_admin') && (
@@ -176,18 +180,22 @@ const Header = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/survey?type=start" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Start Shift Check-In</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/survey?type=end" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>End Shift Check-In</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {user.role === 'user' && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/survey?type=start" className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Start Shift Check-In</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/survey?type=end" className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>End Shift Check-In</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   {hasPermission('site_admin') && (
                     <DropdownMenuItem asChild>
                       <Link to="/analytics" className="cursor-pointer">
@@ -277,21 +285,26 @@ const Header = () => {
                     </Link>
                   )}
                   
-                  <Link 
-                    to="/survey?type=start" 
-                    className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Start Shift Check-In
-                  </Link>
-                  
-                  <Link 
-                    to="/survey?type=end" 
-                    className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    End Shift Check-In
-                  </Link>
+                  {/* Only regular users can access survey links */}
+                  {user.role === 'user' && (
+                    <>
+                      <Link 
+                        to="/survey?type=start" 
+                        className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Start Shift Check-In
+                      </Link>
+                      
+                      <Link 
+                        to="/survey?type=end" 
+                        className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        End Shift Check-In
+                      </Link>
+                    </>
+                  )}
                   
                   {/* Super_admins and org_admins get admin panel */}
                   {hasPermission('org_admin') && (

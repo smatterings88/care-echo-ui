@@ -40,7 +40,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const AnalyticsDashboard = () => {
   const navigate = useNavigate();
@@ -48,6 +48,7 @@ const AnalyticsDashboard = () => {
   const { user, getSurveyAnalytics, getSurveyResponses, getAgencies } = useAuth();
   const [analytics, setAnalytics] = useState<SurveyAnalytics | null>(null);
   const [agencies, setAgencies] = useState<Array<{id: string, name: string}>>([]);
+  const [responsesRaw, setResponsesRaw] = useState<SurveyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timeFilter, setTimeFilter] = useState("7d");
@@ -127,9 +128,23 @@ const AnalyticsDashboard = () => {
         filters.agencyId = agencyFilter;
       }
       
+      // Always filter to only show regular users' data (not admin users)
+      filters.userRole = 'user';
+      
+      // Debug logging for scope validation
+      console.log('Analytics filters applied:', {
+        userRole: user?.role,
+        filters: filters,
+        agencyScope: user?.role === 'site_admin' ? user.agencyId : 
+                    user?.role === 'org_admin' ? user.agencyIds : 
+                    user?.role === 'super_admin' ? 'all' : 'none'
+      });
+      
       // Get analytics data with filters
       const analyticsData = await getSurveyAnalytics(filters);
+      const raw = await getSurveyResponses(filters);
       setAnalytics(analyticsData);
+      setResponsesRaw(raw);
       
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -201,6 +216,60 @@ const AnalyticsDashboard = () => {
       responses: trend.count,
       avgMood: trend.averageMood
     })) : [];
+
+  // 1) Heatmap calendar (last 28 days): build a date -> count map
+  const buildDateKey = (d: Date) => d.toISOString().split('T')[0];
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 27);
+  const dayList: Date[] = Array.from({ length: 28 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+  const countsByDay: Record<string, number> = {};
+  for (const d of dayList) countsByDay[buildDateKey(d)] = 0;
+  responsesRaw.forEach(r => {
+    const raw = (r as any).completedAt;
+    const dt = typeof (raw as any)?.toDate === 'function' ? (raw as any).toDate() : (raw instanceof Date ? raw : new Date(raw));
+    if (!isNaN(dt.getTime())) {
+      const key = buildDateKey(dt);
+      if (key in countsByDay) countsByDay[key] += 1;
+    }
+  });
+  const heatmapData = dayList.map(d => ({
+    date: d,
+    key: buildDateKey(d),
+    count: countsByDay[buildDateKey(d)] || 0,
+  }));
+
+  // 2) Stacked mood-by-shift chart
+  const moods = ['great', 'okay', 'tired', 'stressed', 'overwhelmed'] as const;
+  const moodByShiftBase = { start: Object.fromEntries(moods.map(m => [m, 0])) as Record<string, number>, end: Object.fromEntries(moods.map(m => [m, 0])) as Record<string, number> };
+  const moodByShiftAgg = JSON.parse(JSON.stringify(moodByShiftBase)) as typeof moodByShiftBase;
+  responsesRaw.forEach(r => {
+    const type = r.surveyType; // 'start' | 'end'
+    const mood = r.responses.mood as string;
+    if ((type === 'start' || type === 'end') && moods.includes(mood as any)) {
+      moodByShiftAgg[type][mood] = (moodByShiftAgg[type][mood] || 0) + 1;
+    }
+  });
+  const moodByShiftData = [
+    { shift: 'Start', ...moodByShiftAgg.start },
+    { shift: 'End', ...moodByShiftAgg.end },
+  ];
+
+  // 3) Facility response leaderboard (scoped)
+  const nameById: Record<string, string> = Object.fromEntries(agencies.map(a => [a.id, a.name]));
+  const countByFacility: Record<string, number> = {};
+  responsesRaw.forEach(r => {
+    const id = (r as any).agencyId || 'unknown';
+    countByFacility[id] = (countByFacility[id] || 0) + 1;
+  });
+  const leaderboard = Object.entries(countByFacility)
+    .map(([id, count]) => ({ id, name: nameById[id] || (id === 'unknown' ? 'Unknown facility' : id), count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
 
   if (loading) {
@@ -319,6 +388,23 @@ const AnalyticsDashboard = () => {
                 <span>Updating...</span>
               </div>
             )}
+          </div>
+          {/* Scope indicator */}
+          <div className="text-xs text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full flex-1 flex justify-center items-center">
+            {(() => {
+              if (user?.role === 'super_admin') {
+                const label = agencyFilter !== 'all' ? '1 facility' : 'All facilities';
+                return `Showing: ${label} • Regular users only`;
+              }
+              if (user?.role === 'org_admin') {
+                const label = selectedAgency !== 'all' ? '1 facility' : `${user?.agencyIds?.length || 0} facilities`;
+                return `Showing: ${label} • Regular users only`;
+              }
+              if (user?.role === 'site_admin') {
+                return 'Showing: Your facility • Regular users only';
+              }
+              return 'Showing: No access';
+            })()}
           </div>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
             <SelectTrigger className="w-[140px]">
@@ -583,6 +669,107 @@ const AnalyticsDashboard = () => {
             </div>
           </Card>
         )}
+
+        {/* 1) 28-day Heatmap Calendar (Super Admin only) */}
+        {user?.role === 'super_admin' && (
+        <Card className="p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Activity Heatmap (28 days)</h3>
+            <Calendar className="h-5 w-5 text-neutral-600" />
+          </div>
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))', gap: '4px' }}
+          >
+            {heatmapData.map((d, idx) => {
+              const c = d.count;
+              const intensity = c >= 8 ? 'bg-brand-red-700' : c >= 5 ? 'bg-brand-red-500' : c >= 3 ? 'bg-brand-red-300' : c >= 1 ? 'bg-brand-red-100' : 'bg-neutral-50';
+              return (
+                <div key={d.key} className="flex flex-col items-center">
+                  <div
+                    className={`w-full h-5 rounded-sm ${intensity} border border-neutral-200`}
+                    title={`${new Date(d.key).toLocaleDateString()}: ${c} responses`}
+                  />
+                  {/* Optional per-cell tiny date label: only show for each 7th bucket to avoid clutter */}
+                  {((idx % 7) === 0) && (
+                    <div className="mt-1 text-[10px] text-neutral-400">
+                      {new Date(d.key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Start/End date labels */}
+          <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
+            <span>{start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span>{end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+          </div>
+          <div className="mt-3 flex items-center space-x-2 text-xs text-neutral-500">
+            <span>Less</span>
+            <div className="w-4 h-3 bg-neutral-200 rounded"></div>
+            <div className="w-4 h-3 bg-brand-red-100 rounded"></div>
+            <div className="w-4 h-3 bg-brand-red-300 rounded"></div>
+            <div className="w-4 h-3 bg-brand-red-500 rounded"></div>
+            <div className="w-4 h-3 bg-brand-red-700 rounded"></div>
+            <span>More</span>
+          </div>
+        </Card>
+        )}
+
+        {/* 2) Stacked Mood by Shift */}
+        <Card className="p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Mood by Shift</h3>
+            <BarChart3 className="h-5 w-5 text-neutral-600" />
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={moodByShiftData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="shift" stroke="#6b7280" fontSize={12} />
+                <YAxis stroke="#6b7280" fontSize={12} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="great" stackId="a" fill="#10b981" name="Great" />
+                <Bar dataKey="okay" stackId="a" fill="#3b82f6" name="Okay" />
+                <Bar dataKey="tired" stackId="a" fill="#f59e0b" name="Tired" />
+                <Bar dataKey="stressed" stackId="a" fill="#f97316" name="Stressed" />
+                <Bar dataKey="overwhelmed" stackId="a" fill="#ef4444" name="Overwhelmed" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        {/* 3) Facility Response Leaderboard */}
+        <Card className="p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-neutral-900">Top Facilities by Responses</h3>
+            <Users className="h-5 w-5 text-neutral-600" />
+          </div>
+          {leaderboard.length === 0 ? (
+            <div className="text-neutral-600 text-sm">No data in current scope.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-neutral-600">
+                    <th className="py-2 pr-4">Facility</th>
+                    <th className="py-2 pr-4">Responses</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map(row => (
+                    <tr key={row.id} className="border-t border-neutral-200">
+                      <td className="py-2 pr-4">{row.name}</td>
+                      <td className="py-2 pr-4 font-medium text-neutral-900">{row.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
       </div>
     </div>

@@ -37,8 +37,11 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' && 
          agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
       );
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+      allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'org_admin' && 
+         agencyId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyIds)
+      );
     }
     
     // Surveys collection - users can create their own surveys, read their own and agency surveys

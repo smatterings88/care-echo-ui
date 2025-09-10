@@ -11,6 +11,7 @@ import Survey from "./pages/Survey";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import UserCheckin from "./pages/UserCheckin";
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,11 @@ const App = () => (
             <Route path="/analytics" element={
               <ProtectedRoute requiredRole="site_admin">
                 <AnalyticsDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/user-checkin" element={
+              <ProtectedRoute requiredRole="org_admin">
+                <UserCheckin />
               </ProtectedRoute>
             } />
             <Route path="/change-password" element={

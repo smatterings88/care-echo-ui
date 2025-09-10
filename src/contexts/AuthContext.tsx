@@ -395,6 +395,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: serverTimestamp(),
         isActive: true,
         userCount: 0,
+        // Optional facility fields
+        address: agencyData.address || null,
+        timeZone: agencyData.timeZone || null,
+        beds: agencyData.beds ?? null,
+        numCNAs: agencyData.numCNAs ?? null,
+        logoUrl: agencyData.logoUrl || null,
+        mainPhone: agencyData.mainPhone || null,
+        contactName: agencyData.contactName || null,
+        contactPhone: agencyData.contactPhone || null,
+        contactEmail: agencyData.contactEmail || null,
+        billingContactName: agencyData.billingContactName || null,
+        billingContactPhone: agencyData.billingContactPhone || null,
+        billingContactEmail: agencyData.billingContactEmail || null,
       });
 
       // Return the full agency data
@@ -405,7 +418,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date(),
         isActive: true,
         userCount: 0,
-      };
+        address: agencyData.address,
+        timeZone: agencyData.timeZone,
+        beds: agencyData.beds,
+        numCNAs: agencyData.numCNAs,
+        logoUrl: agencyData.logoUrl,
+        mainPhone: agencyData.mainPhone,
+        contactName: agencyData.contactName,
+        contactPhone: agencyData.contactPhone,
+        contactEmail: agencyData.contactEmail,
+        billingContactName: agencyData.billingContactName,
+        billingContactPhone: agencyData.billingContactPhone,
+        billingContactEmail: agencyData.billingContactEmail,
+      } as AgencyData;
     } catch (error: unknown) {
       throw new Error(error instanceof Error ? error.message : 'Failed to create agency');
     }

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { auth } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -47,6 +51,7 @@ import {
   Edit3
 } from "lucide-react";
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
+import { getTimeZones } from "@vvo/tzdb";
 
 // Safely convert Firestore Timestamp or Date-like values to Date
 const toDateSafely = (value: unknown): Date => {
@@ -78,6 +83,12 @@ const AdminDashboard = () => {
   const [bulkIsProcessing, setBulkIsProcessing] = useState(false);
   const [bulkResults, setBulkResults] = useState<Array<{row:number,status:'success'|'error',message:string}>>([]);
 
+  // Edit facility modal state
+  const [editingAgency, setEditingAgency] = useState<AgencyData | null>(null);
+  const [editAgencyName, setEditAgencyName] = useState<string>('');
+  const [editAgencyForm, setEditAgencyForm] = useState<Partial<CreateAgencyData>>({});
+  const [editAgencyLogoFile, setEditAgencyLogoFile] = useState<File | null>(null);
+
   // Edit user modal state
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [editForm, setEditForm] = useState<Partial<UserData>>({});
@@ -98,7 +109,47 @@ const AdminDashboard = () => {
   const [agencyForm, setAgencyForm] = useState<CreateAgencyData>({
     name: '',
     adminId: user?.uid || '',
+    address: '',
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    beds: undefined,
+    numCNAs: 10,
+    logoUrl: '',
+    mainPhone: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: '',
+    billingContactName: '',
+    billingContactPhone: '',
+    billingContactEmail: '',
   });
+  const [agencyLogoFile, setAgencyLogoFile] = useState<File | null>(null);
+
+  // Timezone dropdown state
+  const [createTimezoneOpen, setCreateTimezoneOpen] = useState(false);
+  const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
+
+  // Time zones list (use Intl.supportedValuesOf if available, else fallback)
+  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const fallbackTimeZones = [
+    'UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Anchorage','Pacific/Honolulu',
+    'Europe/London','Europe/Berlin','Europe/Paris','Europe/Madrid','Europe/Rome','Europe/Warsaw',
+    'Africa/Johannesburg','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo',
+    'Australia/Sydney','Pacific/Auckland'
+  ];
+  const formatOffset = (minutes: number): string => {
+    const sign = minutes >= 0 ? '+' : '-';
+    const abs = Math.abs(minutes);
+    const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+    const mm = String(abs % 60).padStart(2, '0');
+    return `${sign}${hh}:${mm}`;
+  };
+  const tzdb = getTimeZones();
+  const timeZoneOptions: Array<{ value: string; label: string }> = (tzdb && tzdb.length > 0)
+    ? tzdb.map(t => ({
+        value: t.name,
+        label: `${t.alternativeName || t.mainCities?.[0] || t.name} (${t.name}) — GMT${formatOffset(t.currentTimeOffsetInMinutes)}`
+      }))
+    : fallbackTimeZones.map(name => ({ value: name, label: name }));
 
   useEffect(() => {
     loadData();
@@ -219,11 +270,33 @@ const AdminDashboard = () => {
   const handleCreateAgency = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createAgency(agencyForm);
+      let logoUrl = agencyForm.logoUrl || '';
+      // Upload logo first if provided
+      if (agencyLogoFile) {
+        const tmpId = crypto?.randomUUID?.() || `${Date.now()}`;
+        const path = `facilities/tmp-${tmpId}/logo-${agencyLogoFile.name}`;
+        const sRef = ref(storage, path);
+        await uploadBytes(sRef, agencyLogoFile);
+        logoUrl = await getDownloadURL(sRef);
+      }
+      await createAgency({ ...agencyForm, logoUrl });
       setAgencyForm({
         name: '',
         adminId: user?.uid || '',
+        address: '',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        beds: undefined,
+        numCNAs: 10,
+        logoUrl: '',
+        mainPhone: '',
+        contactName: '',
+        contactPhone: '',
+        contactEmail: '',
+        billingContactName: '',
+        billingContactPhone: '',
+        billingContactEmail: '',
       });
+      setAgencyLogoFile(null);
       setShowCreateAgency(false);
       loadData();
     } catch (error) {
@@ -320,6 +393,12 @@ const AdminDashboard = () => {
             <p className="text-neutral-600 mt-2">Manage users and agencies</p>
           </div>
           <div className="flex items-center space-x-2">
+            <Button asChild variant="outline" className="focus-ring">
+              <Link to="/user-checkin">
+                <UserCheck className="h-4 w-4 mr-2" />
+                User Check-in
+              </Link>
+            </Button>
             <Button asChild variant="outline" className="focus-ring">
               <Link to="/">← Back to landing</Link>
             </Button>
@@ -456,13 +535,15 @@ const AdminDashboard = () => {
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => setShowCreateAgency(true)}
-              className="btn-primary"
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              Create Facility
-            </Button>
+            user?.role !== 'site_admin' && (
+              <Button
+                onClick={() => setShowCreateAgency(true)}
+                className="btn-primary"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                Create Facility
+              </Button>
+            )
           )}
         </div>
 
@@ -559,12 +640,38 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-error hover:text-error">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {user?.role !== 'site_admin' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingAgency(agency);
+                            setEditAgencyName(agency.name || '');
+                            setEditAgencyForm({
+                              address: agency.address || '',
+                              timeZone: agency.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                              beds: agency.beds,
+                              numCNAs: agency.numCNAs ?? 10,
+                              logoUrl: agency.logoUrl || '',
+                              mainPhone: agency.mainPhone || '',
+                              contactName: agency.contactName || '',
+                              contactPhone: agency.contactPhone || '',
+                              contactEmail: agency.contactEmail || '',
+                              billingContactName: agency.billingContactName || '',
+                              billingContactPhone: agency.billingContactPhone || '',
+                              billingContactEmail: agency.billingContactEmail || '',
+                            });
+                            setEditAgencyLogoFile(null);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-error hover:text-error">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -965,12 +1072,99 @@ const AdminDashboard = () => {
               <form onSubmit={handleCreateAgency} className="space-y-4">
                 <div>
                   <Label htmlFor="agencyName">Facility Name</Label>
-                  <Input
-                    id="agencyName"
-                    value={agencyForm.name}
-                    onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))}
-                    required
-                  />
+                  <Input id="agencyName" value={agencyForm.name} onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))} required />
+                </div>
+                <div>
+                  <Label htmlFor="agencyAddress">Address</Label>
+                  <Input id="agencyAddress" value={agencyForm.address || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, address: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="agencyTZ">Time Zone</Label>
+                    <Popover open={createTimezoneOpen} onOpenChange={setCreateTimezoneOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={createTimezoneOpen}
+                          className="w-full justify-between"
+                        >
+                          {agencyForm.timeZone || defaultTimeZone}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search timezone..." />
+                          <CommandList>
+                            <CommandEmpty>No timezone found.</CommandEmpty>
+                            <CommandGroup>
+                              {timeZoneOptions.map((tz) => (
+                                <CommandItem
+                                  key={tz.value}
+                                  value={tz.label}
+                                  onSelect={(currentValue) => {
+                                    setAgencyForm(prev => ({ ...prev, timeZone: tz.value }));
+                                    setCreateTimezoneOpen(false);
+                                  }}
+                                >
+                                  {tz.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label htmlFor="agencyBeds"># of Beds</Label>
+                    <Input id="agencyBeds" type="number" min={0} value={agencyForm.beds ?? ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, beds: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="agencyCNAs"># of CNA’s</Label>
+                    <Input id="agencyCNAs" type="number" min={0} value={agencyForm.numCNAs ?? 10} onChange={(e) => setAgencyForm(prev => ({ ...prev, numCNAs: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="agencyMainPhone">Main Phone</Label>
+                    <Input id="agencyMainPhone" value={agencyForm.mainPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, mainPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="agencyLogo">Facility Logo</Label>
+                  <Input id="agencyLogo" type="file" accept="image/*" onChange={(e) => setAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contactName">Contact Name</Label>
+                    <Input id="contactName" value={agencyForm.contactName || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactPhone">Contact Phone</Label>
+                    <Input id="contactPhone" value={agencyForm.contactPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Input id="contactEmail" type="email" value={agencyForm.contactEmail || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactEmail: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="billingContact">Billing Contact</Label>
+                    <Input id="billingContact" value={agencyForm.billingContactName || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="billingPhone">Billing Contact Phone</Label>
+                    <Input id="billingPhone" value={agencyForm.billingContactPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="billingEmail">Billing Contact Email</Label>
+                  <Input id="billingEmail" type="email" value={agencyForm.billingContactEmail || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactEmail: e.target.value }))} />
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="btn-primary flex-1">
@@ -1142,6 +1336,159 @@ const AdminDashboard = () => {
                   <Button variant="outline" onClick={() => setShowBulkImport(false)}>Done</Button>
                 </div>
               </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Edit Facility Modal */}
+        {editingAgency && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-xl font-bold text-neutral-900 mb-4">Edit Facility</h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    if (!editingAgency?.id) return;
+                    // Upload new logo if provided
+                    let logoUrl = editAgencyForm.logoUrl || editingAgency.logoUrl || '';
+                    if (editAgencyLogoFile) {
+                      const path = `facilities/${editingAgency.id}/logo-${editAgencyLogoFile.name}`;
+                      const sRef = ref(storage, path);
+                      await uploadBytes(sRef, editAgencyLogoFile);
+                      logoUrl = await getDownloadURL(sRef);
+                    }
+                    await updateDoc(doc(db, 'agencies', editingAgency.id), {
+                      name: editAgencyName,
+                      address: editAgencyForm.address || '',
+                      timeZone: editAgencyForm.timeZone || null,
+                      beds: editAgencyForm.beds ?? null,
+                      numCNAs: editAgencyForm.numCNAs ?? null,
+                      logoUrl: logoUrl || null,
+                      mainPhone: editAgencyForm.mainPhone || '',
+                      contactName: editAgencyForm.contactName || '',
+                      contactPhone: editAgencyForm.contactPhone || '',
+                      contactEmail: editAgencyForm.contactEmail || '',
+                      billingContactName: editAgencyForm.billingContactName || '',
+                      billingContactPhone: editAgencyForm.billingContactPhone || '',
+                      billingContactEmail: editAgencyForm.billingContactEmail || '',
+                    });
+                    setEditingAgency(null);
+                    setEditAgencyName('');
+                    setEditAgencyForm({});
+                    setEditAgencyLogoFile(null);
+                    await loadData();
+                  } catch (err) {
+                    console.error('Failed to update facility:', err);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <Label htmlFor="editFacilityName">Facility Name</Label>
+                  <Input id="editFacilityName" value={editAgencyName} onChange={(e) => setEditAgencyName(e.target.value)} required />
+                </div>
+                <div>
+                  <Label htmlFor="editFacilityAddress">Address</Label>
+                  <Input id="editFacilityAddress" value={editAgencyForm.address || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, address: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editFacilityTZ">Time Zone</Label>
+                    <Popover open={editTimezoneOpen} onOpenChange={setEditTimezoneOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={editTimezoneOpen}
+                          className="w-full justify-between"
+                        >
+                          {editAgencyForm.timeZone || defaultTimeZone}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search timezone..." />
+                          <CommandList>
+                            <CommandEmpty>No timezone found.</CommandEmpty>
+                            <CommandGroup>
+                              {timeZoneOptions.map((tz) => (
+                                <CommandItem
+                                  key={tz.value}
+                                  value={tz.label}
+                                  onSelect={(currentValue) => {
+                                    setEditAgencyForm(prev => ({ ...prev, timeZone: tz.value }));
+                                    setEditTimezoneOpen(false);
+                                  }}
+                                >
+                                  {tz.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label htmlFor="editFacilityBeds"># of Beds</Label>
+                    <Input id="editFacilityBeds" type="number" min={0} value={editAgencyForm.beds ?? ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, beds: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editFacilityCNAs"># of CNA’s</Label>
+                    <Input id="editFacilityCNAs" type="number" min={0} value={editAgencyForm.numCNAs ?? 10} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, numCNAs: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="editFacilityPhone">Main Phone</Label>
+                    <Input id="editFacilityPhone" value={editAgencyForm.mainPhone || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, mainPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="editFacilityLogo">Facility Logo</Label>
+                  <Input id="editFacilityLogo" type="file" accept="image/*" onChange={(e) => setEditAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editContactName">Contact Name</Label>
+                    <Input id="editContactName" value={editAgencyForm.contactName || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, contactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="editContactPhone">Contact Phone</Label>
+                    <Input id="editContactPhone" value={editAgencyForm.contactPhone || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, contactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="editContactEmail">Contact Email</Label>
+                  <Input id="editContactEmail" type="email" value={editAgencyForm.contactEmail || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, contactEmail: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editBillingName">Billing Contact</Label>
+                    <Input id="editBillingName" value={editAgencyForm.billingContactName || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, billingContactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="editBillingPhone">Billing Contact Phone</Label>
+                    <Input id="editBillingPhone" value={editAgencyForm.billingContactPhone || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, billingContactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="editBillingEmail">Billing Contact Email</Label>
+                  <Input id="editBillingEmail" type="email" value={editAgencyForm.billingContactEmail || ''} onChange={(e) => setEditAgencyForm(prev => ({ ...prev, billingContactEmail: e.target.value }))} />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="btn-primary flex-1">Save Changes</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setEditingAgency(null); setEditAgencyName(''); setEditAgencyForm({}); setEditAgencyLogoFile(null); }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             </Card>
           </div>
         )}
