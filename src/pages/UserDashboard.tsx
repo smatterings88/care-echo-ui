@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { Sun, Moon, LogOut, Check } from 'lucide-react';
 
 const UserDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, getSurveyCompletionStatus } = useAuth();
+  const [surveyStatus, setSurveyStatus] = useState({ start: false, end: false });
+  const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -14,6 +16,28 @@ const UserDashboard = () => {
       console.error('Logout failed:', error);
     }
   };
+
+  // Fetch survey completion status for today
+  useEffect(() => {
+    const fetchSurveyStatus = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        const status = await getSurveyCompletionStatus(user.uid, today);
+        setSurveyStatus(status);
+      } catch (error) {
+        console.error('Error fetching survey status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSurveyStatus();
+  }, [user?.uid, getSurveyCompletionStatus]);
   // Get current day of week and date
   const getDayOfWeek = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
@@ -82,11 +106,11 @@ const UserDashboard = () => {
   const dayNames = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+    <div className="min-h-screen bg-neutral-50">
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-yellow-200/20 to-amber-200/20 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-brand-red-500/10 to-accent-teal/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent-teal/10 to-brand-red-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative z-10 px-4 py-8 max-w-4xl mx-auto">
@@ -96,7 +120,7 @@ const UserDashboard = () => {
           <Button
             onClick={handleLogout}
             variant="ghost"
-            className="text-amber-700 hover:text-amber-900 hover:bg-amber-100/50 rounded-full p-3 transition-all duration-200"
+            className="text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-full p-3 transition-all duration-200 focus-ring"
           >
             <LogOut className="w-5 h-5 mr-2" />
             <span className="hidden sm:inline">Logout</span>
@@ -110,25 +134,25 @@ const UserDashboard = () => {
         <div className="text-center mb-8">
           {/* Logo */}
           <div className="mb-6">
-            <div className="w-12 h-12 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 mx-auto bg-gradient-to-br from-brand-red-600 to-brand-red-700 rounded-full flex items-center justify-center shadow-lg">
               <Sun className="w-6 h-6 text-white" />
             </div>
           </div>
 
           {/* Date */}
-          <div className="text-amber-600/70 text-caption mb-2 tracking-wider">
+          <div className="text-neutral-600 text-caption mb-2 tracking-wider">
             {getDayOfWeek(new Date())} {getFormattedDate(new Date())}
           </div>
 
           {/* Greeting */}
-          <h1 className="text-h1 text-amber-900/90 mb-8">
+          <h1 className="text-h1 text-neutral-900 mb-8">
             {getGreeting()}, {getFirstName()}!
           </h1>
 
           {/* Calendar */}
-          <div className="bg-white/30 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20 max-w-md mx-auto">
+          <div className="bg-neutral-100/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-neutral-200 max-w-md mx-auto">
             <div className="text-center mb-4">
-              <h3 className="text-h3 text-amber-900">
+              <h3 className="text-h3 text-neutral-900">
                 This Week
               </h3>
             </div>
@@ -136,7 +160,7 @@ const UserDashboard = () => {
             {/* Day names */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {dayNames.map((day) => (
-                <div key={day} className="text-center text-caption text-amber-700/70 py-2">
+                <div key={day} className="text-center text-caption text-neutral-600 py-2">
                   {day}
                 </div>
               ))}
@@ -149,8 +173,8 @@ const UserDashboard = () => {
                   key={index}
                   className={`aspect-square flex items-center justify-center text-sm font-medium rounded-xl transition-all duration-200 ${
                     isToday(day)
-                      ? 'bg-amber-500 text-white shadow-lg scale-110'
-                      : 'text-amber-700'
+                      ? 'bg-brand-red-600 text-white shadow-lg scale-110'
+                      : 'text-neutral-700'
                   }`}
                 >
                   {day.getDate()}
@@ -163,61 +187,79 @@ const UserDashboard = () => {
         {/* Main Cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Start Shift Card */}
-          <Card className="group bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+          <Card className={`group card-interactive rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] cursor-pointer focus-ring relative ${
+            surveyStatus.start ? 'ring-2 ring-brand-red-600 bg-brand-red-600/5' : ''
+          }`}
                 onClick={handleStartShift}>
+            {/* Check mark overlay */}
+            {surveyStatus.start && (
+              <div className="absolute top-4 right-4 w-8 h-8 bg-brand-red-600 rounded-full flex items-center justify-center shadow-lg">
+                <Check className="w-5 h-5 text-white" />
+              </div>
+            )}
+            
             <div className="text-center">
-              <div className="text-red-500 text-cta mb-4 tracking-wide">
+              <div className="text-brand-red-600 text-cta mb-4 tracking-wide">
                 START SHIFT
               </div>
               
               <div className="mb-6">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-brand-red-600 to-brand-red-700 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                   <Sun className="w-8 h-8 text-white" />
                 </div>
               </div>
 
               <div className="relative mb-6">
-                <h2 className="text-h2 text-amber-900/90 mb-4">
-                  Morning
+                <h2 className="text-h2 text-neutral-900 mb-4">
+                  Ready to begin?
                 </h2>
                 
-                <div className="text-quote text-amber-900/90">
-                  reflection
+                <div className="text-quote text-neutral-800">
+                  How are you feeling as you start your shift today— energized, uncertain, or somewhere in between?
                 </div>
               </div>
 
-              <div className="text-amber-700/70 text-caption">
-                Start your perfect day
+              <div className="text-neutral-600 text-caption">
+                {surveyStatus.start ? 'Completed today' : 'Start your perfect day'}
               </div>
             </div>
           </Card>
 
           {/* End Shift Card */}
-          <Card className="group bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+          <Card className={`group card-interactive rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] cursor-pointer focus-ring relative ${
+            surveyStatus.end ? 'ring-2 ring-brand-red-600 bg-brand-red-600/5' : ''
+          }`}
                 onClick={handleEndShift}>
+            {/* Check mark overlay */}
+            {surveyStatus.end && (
+              <div className="absolute top-4 right-4 w-8 h-8 bg-brand-red-600 rounded-full flex items-center justify-center shadow-lg">
+                <Check className="w-5 h-5 text-white" />
+              </div>
+            )}
+            
             <div className="text-center">
-              <div className="text-red-500 text-cta mb-4 tracking-wide">
+              <div className="text-brand-red-600 text-cta mb-4 tracking-wide">
                 END SHIFT
               </div>
               
               <div className="mb-6">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Moon className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-accent-teal to-brand-red-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Moon className="w-8 h-8 text-neutral-900" />
                 </div>
               </div>
 
               <div className="relative mb-6">
-                <h2 className="text-h2 text-amber-900/90 mb-4">
-                  Evening
+                <h2 className="text-h2 text-neutral-900 mb-4">
+                  Shift's over.
                 </h2>
                 
-                <div className="text-quote text-amber-900/90">
-                  reflection
+                <div className="text-quote text-neutral-800">
+                  Looking back, was it a rough one, a good one, or somewhere in between? Share how you're doing.
                 </div>
               </div>
 
-              <div className="text-amber-700/70 text-caption">
-                Assess your day
+              <div className="text-neutral-600 text-caption">
+                {surveyStatus.end ? 'Completed today' : 'Assess your day'}
               </div>
             </div>
           </Card>
@@ -225,7 +267,7 @@ const UserDashboard = () => {
 
         {/* Footer */}
         <div className="text-center mt-12">
-          <p className="text-amber-600/60 text-caption">
+          <p className="text-neutral-600 text-caption">
             Take a moment to reflect on your shift
           </p>
         </div>

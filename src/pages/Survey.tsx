@@ -170,7 +170,8 @@ const Survey = () => {
         description: "Thank you for taking the time to check in. Your wellbeing matters.",
       });
       
-      setTimeout(() => navigate("/"), 2000);
+      // Navigate to dashboard to show updated completion status
+      setTimeout(() => navigate("/dashboard"), 2000);
     } catch (error) {
       console.error('Error submitting survey:', error);
       toast({
@@ -195,11 +196,17 @@ const Survey = () => {
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-brand-red-500/10 to-accent-teal/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-accent-teal/10 to-brand-red-500/10 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-neutral-300 bg-white/90 backdrop-blur-md">
+      <header className="relative z-10 sticky top-0 w-full border-b border-neutral-200 bg-neutral-100/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-neutral-700 hover:text-neutral-900 hover:bg-neutral-200 focus-ring">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <img 
@@ -208,33 +215,33 @@ const Survey = () => {
               className="w-[10rem] h-12 object-contain"
             />
           </div>
-          <h1 className="text-lg font-semibold text-neutral-900">{getSurveyTitle()}</h1>
-          <div className="text-sm text-neutral-700">
+          <h1 className="text-h3 text-neutral-900">{getSurveyTitle()}</h1>
+          <div className="text-caption text-neutral-600">
             {currentStep}/4
           </div>
         </div>
       </header>
 
       {/* Progress Bar */}
-      <div className="w-full bg-neutral-300 h-1">
+      <div className="relative z-10 w-full bg-neutral-200 h-1">
         <div 
           className="bg-gradient-to-r from-brand-red-600 to-accent-teal h-1 transition-all duration-500"
           style={{ width: `${(currentStep / 4) * 100}%` }}
         />
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-2xl">
         {/* Step 1: Mood Check */}
         {currentStep === 1 && (
-          <Card className="p-8 animate-fade-in">
+          <Card className="card-interactive p-8 animate-fade-in rounded-3xl shadow-2xl">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
+              <h2 className="text-h2 text-neutral-900 mb-3">
                 {surveyType === 'start' 
                   ? "How are you feeling as you begin your shift?"
                   : "How was your shift today?"
                 }
               </h2>
-              <p className="text-neutral-700">
+              <p className="text-body text-neutral-600">
                 Take a moment to check in with yourself
               </p>
             </div>
@@ -244,7 +251,7 @@ const Survey = () => {
                 <Button
                   key={mood.value}
                   variant="outline"
-                  className="h-16 text-lg justify-start space-x-4 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300"
+                  className="h-16 text-lg justify-start space-x-4 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300 focus-ring rounded-2xl"
                   onClick={() => handleMoodSelect(mood.value)}
                 >
                   <span className="text-2xl">{mood.emoji}</span>
@@ -257,15 +264,15 @@ const Survey = () => {
 
         {/* Step 2: Main Concern (Start) or Stress Source (End) */}
         {currentStep === 2 && (
-          <Card className="p-8 animate-fade-in">
+          <Card className="card-interactive p-8 animate-fade-in rounded-3xl shadow-2xl">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
+              <h2 className="text-h2 text-neutral-900 mb-3">
                 {surveyType === 'start' 
                   ? "What's most on your mind as you start today?"
                   : "What drained you most during this shift?"
                 }
               </h2>
-              <p className="text-neutral-700">
+              <p className="text-body text-neutral-600">
                 {surveyType === 'start' 
                   ? "Understanding your concerns helps us support you better"
                   : "Understanding your stress helps us support you better"
@@ -278,7 +285,7 @@ const Survey = () => {
                 <Button
                   key={concern}
                   variant="outline"
-                  className="h-14 text-left justify-start px-6 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300"
+                  className="h-14 text-left justify-start px-6 hover:bg-brand-red-600/5 hover:border-brand-red-600 transition-all duration-300 focus-ring rounded-2xl"
                   onClick={() => handleConcernSelect(concern)}
                 >
                   <span className="font-medium">{concern}</span>
@@ -292,11 +299,11 @@ const Survey = () => {
                   placeholder="Tell us what's on your mind..."
                   value={responses.mainConcernOther}
                   onChange={(e) => setResponses(prev => ({ ...prev, mainConcernOther: e.target.value }))}
-                  className="resize-none"
+                  className="resize-none rounded-2xl border-neutral-200 focus:border-brand-red-600 focus:ring-2 focus:ring-accent-teal"
                   rows={3}
                 />
                 <Button 
-                  className="mt-4 w-full btn-primary"
+                  className="mt-4 w-full btn-primary rounded-2xl"
                   onClick={handleNext}
                   disabled={!responses.mainConcernOther.trim()}
                 >
@@ -310,15 +317,15 @@ const Survey = () => {
 
         {/* Step 3: Support & Energy */}
         {currentStep === 3 && (
-          <Card className="p-8 animate-fade-in">
+          <Card className="card-interactive p-8 animate-fade-in rounded-3xl shadow-2xl">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
+              <h2 className="text-h2 text-neutral-900 mb-3">
                 {surveyType === 'start' 
                   ? "What might help you feel supported or energized this shift?"
                   : "What gave you energy or support today?"
                 }
               </h2>
-              <p className="text-neutral-700">
+              <p className="text-body text-neutral-600">
                 Optional - but we'd love to hear about the good moments
               </p>
             </div>
@@ -331,13 +338,13 @@ const Survey = () => {
                 }
                 value={responses.support}
                 onChange={(e) => setResponses(prev => ({ ...prev, support: e.target.value }))}
-                className="resize-none"
+                className="resize-none rounded-2xl border-neutral-200 focus:border-brand-red-600 focus:ring-2 focus:ring-accent-teal"
                 rows={4}
               />
               
               <div className="flex flex-col gap-3">
                 <Button 
-                  className="btn-primary"
+                  className="btn-primary rounded-2xl"
                   onClick={handleNext}
                 >
                   Continue
@@ -346,7 +353,7 @@ const Survey = () => {
                 <Button 
                   variant="ghost"
                   onClick={handleNext}
-                  className="text-neutral-700"
+                  className="text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-2xl focus-ring"
                 >
                   Skip this step
                 </Button>
@@ -357,19 +364,19 @@ const Survey = () => {
 
         {/* Step 4: Reflection */}
         {currentStep === 4 && (
-          <Card className="p-8 animate-fade-in">
+          <Card className="card-interactive p-8 animate-fade-in rounded-3xl shadow-2xl">
             <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-brand-red-600 to-accent-teal rounded-full flex items-center justify-center mx-auto animate-bounce-gentle">
+              <div className="w-16 h-16 bg-gradient-to-r from-brand-red-600 to-accent-teal rounded-full flex items-center justify-center mx-auto animate-bounce-gentle shadow-lg">
                 <span className="text-2xl">💙</span>
               </div>
               
               <div>
-                <h2 className="text-2xl font-bold text-neutral-900 mb-4">
+                <h2 className="text-h2 text-neutral-900 mb-4">
                   Thank you for checking in
                 </h2>
                 
-                <div className="bg-gradient-to-r from-brand-red-600/5 to-accent-teal/5 rounded-xl p-6 mb-6">
-                  <p className="text-neutral-900 text-lg leading-relaxed">
+                <div className="bg-gradient-to-r from-brand-red-600/5 to-accent-teal/5 rounded-2xl p-6 mb-6 border border-neutral-200">
+                  <p className="text-quote text-neutral-900 leading-relaxed">
                     {(() => {
                       try {
                         return getReflection();
@@ -381,13 +388,13 @@ const Survey = () => {
                   </p>
                 </div>
 
-                <p className="text-neutral-700 mb-6">
+                <p className="text-body text-neutral-600 mb-6">
                   Your responses help us understand how to better support our healthcare heroes.
                 </p>
               </div>
 
               <Button 
-                className="btn-primary w-full"
+                className="btn-primary w-full rounded-2xl"
                 onClick={handleSubmit}
               >
                 Complete Check-In

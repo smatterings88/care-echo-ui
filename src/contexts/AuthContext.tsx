@@ -44,6 +44,9 @@ interface AuthContextType extends AuthState {
   submitSurveyResponse: (surveyData: Omit<SurveyResponse, 'id' | 'createdAt'>) => Promise<void>;
   getSurveyResponses: (filters?: SurveyFilters) => Promise<SurveyResponse[]>;
   getSurveyAnalytics: (filters?: SurveyFilters) => Promise<SurveyAnalytics>;
+  // Survey completion tracking
+  getSurveyCompletionStatus: (userId: string, date: string) => Promise<{ start: boolean; end: boolean }>;
+  markSurveyCompleted: (userId: string, surveyType: 'start' | 'end', date: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -542,6 +545,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...surveyData,
         createdAt: serverTimestamp(),
       });
+      
+      // Mark survey as completed for the day
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      await markSurveyCompleted(surveyData.userId, surveyData.surveyType, today);
+      
       // Update lastActiveAt upon activity
       if (state.user?.uid) {
         try { await updateDoc(doc(db, 'users', state.user.uid), { lastActiveAt: serverTimestamp() }); } catch {}
@@ -655,6 +663,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Survey completion tracking functions
+  const markSurveyCompleted = async (userId: string, surveyType: 'start' | 'end', date: string) => {
+    try {
+      const completionDocId = `${userId}_${date}`;
+      const completionRef = doc(db, 'surveyCompletions', completionDocId);
+
+      const updateData: Record<string, unknown> = {
+        userId,
+        date,
+        updatedAt: serverTimestamp(),
+      };
+      if (surveyType === 'start') {
+        updateData.start = true;
+      } else {
+        updateData.end = true;
+      }
+
+      // Upsert without a prior read to satisfy rules for create/update
+      await setDoc(completionRef, updateData, { merge: true });
+    } catch (error: unknown) {
+      console.error('Error marking survey completed:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to mark survey completed');
+    }
+  };
+
+  const getSurveyCompletionStatus = async (userId: string, date: string): Promise<{ start: boolean; end: boolean }> => {
+    try {
+      const completionDocId = `${userId}_${date}`;
+      const completionRef = doc(db, 'surveyCompletions', completionDocId);
+      const completionDoc = await getDoc(completionRef);
+      
+      if (completionDoc.exists()) {
+        const data = completionDoc.data();
+        return {
+          start: data?.start || false,
+          end: data?.end || false,
+        };
+      }
+      
+      return { start: false, end: false };
+    } catch (error: unknown) {
+      console.error('Error getting survey completion status:', error);
+      return { start: false, end: false };
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -672,6 +726,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     submitSurveyResponse,
     getSurveyResponses,
     getSurveyAnalytics,
+    getSurveyCompletionStatus,
+    markSurveyCompleted,
   };
 
   return (
