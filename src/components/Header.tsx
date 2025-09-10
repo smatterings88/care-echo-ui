@@ -1,7 +1,8 @@
-import { User, Menu, LogOut, Settings, ChevronDown, Lock } from "lucide-react";
+import { User, Menu, LogOut, Settings, ChevronDown, Lock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,13 +16,19 @@ import md5 from "crypto-js/md5";
 
 const Header = () => {
   const { user, logout, hasPermission } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
+      setIsMobileMenuOpen(false);
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   // Generate Gravatar URL from email
@@ -44,10 +51,15 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b border-neutral-300 bg-white/90 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="md:hidden text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200">
-            <Menu className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden text-neutral-900 hover:text-neutral-700 hover:bg-neutral-200 focus-ring"
+            onClick={toggleMobileMenu}
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <Link to="/" className="flex items-center">
+          <Link to="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
             <img 
               src="/logo.png" 
               alt="Care Echo Logo" 
@@ -217,6 +229,130 @@ const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-white border-b border-neutral-200 shadow-lg">
+          <div className="px-4 py-4 space-y-4">
+            {user ? (
+              <>
+                {/* User info */}
+                <div className="flex items-center space-x-3 pb-4 border-b border-neutral-200">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage 
+                      src={getGravatarUrl(user.email)} 
+                      alt={user.displayName}
+                    />
+                    <AvatarFallback className="bg-accent-teal text-white text-sm font-medium">
+                      {getUserInitials(user.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
+                    <span className="text-xs text-neutral-600">{user.email}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium mt-1 inline-block w-fit ${
+                      user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                      user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                      user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                      'bg-neutral-200 text-neutral-700'
+                    }`}>
+                      {user.role === 'super_admin' ? 'Super Admin' :
+                       user.role === 'org_admin' ? 'Org Admin' :
+                       user.role === 'site_admin' ? 'Site Admin' :
+                       'User'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Navigation links */}
+                <div className="space-y-2">
+                  {/* Regular users get dashboard link */}
+                  {user.role === 'user' && (
+                    <Link 
+                      to="/dashboard" 
+                      className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                  )}
+                  
+                  <Link 
+                    to="/survey?type=start" 
+                    className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Start Shift Check-In
+                  </Link>
+                  
+                  <Link 
+                    to="/survey?type=end" 
+                    className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    End Shift Check-In
+                  </Link>
+                  
+                  {/* Super_admins and org_admins get admin panel */}
+                  {hasPermission('org_admin') && (
+                    <Link 
+                      to="/admin" 
+                      className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Admin Panel
+                    </Link>
+                  )}
+
+                  {/* Site_admins and super_admins get analytics */}
+                  {hasPermission('site_admin') && (
+                    <Link 
+                      to="/analytics" 
+                      className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Analytics
+                    </Link>
+                  )}
+
+                  <Link 
+                    to="/change-password" 
+                    className="block px-3 py-2 text-neutral-700 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Change Password
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-caption focus-ring"
+                  >
+                    Log out
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Non-logged in users see basic navigation */
+              <div className="space-y-2">
+                <Link 
+                  to="/" 
+                  className="block px-3 py-2 text-neutral-900 hover:text-brand-red-600 hover:bg-neutral-50 rounded-lg transition-colors text-caption focus-ring"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link 
+                  to="/login" 
+                  className="block px-3 py-2 bg-brand-red-600 text-white hover:bg-brand-red-700 rounded-lg transition-colors text-caption focus-ring text-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 };
