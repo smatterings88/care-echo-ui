@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { auth, db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -123,10 +124,24 @@ const AdminDashboard = () => {
     billingContactEmail: '',
   });
   const [agencyLogoFile, setAgencyLogoFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Timezone dropdown state
   const [createTimezoneOpen, setCreateTimezoneOpen] = useState(false);
   const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
+
+  // Function to delete image from storage
+  const deleteImageFromStorage = async (imageUrl: string) => {
+    try {
+      const imageRef = ref(storage, imageUrl);
+      await deleteObject(imageRef);
+      return true;
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      return false;
+    }
+  };
 
   // Time zones list (use Intl.supportedValuesOf if available, else fallback)
   const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -273,11 +288,26 @@ const AdminDashboard = () => {
       let logoUrl = agencyForm.logoUrl || '';
       // Upload logo first if provided
       if (agencyLogoFile) {
+        setIsUploading(true);
+        setUploadProgress(0);
         const tmpId = crypto?.randomUUID?.() || `${Date.now()}`;
         const path = `facilities/tmp-${tmpId}/logo-${agencyLogoFile.name}`;
         const sRef = ref(storage, path);
-        await uploadBytes(sRef, agencyLogoFile);
+        
+        // Upload with progress tracking
+        const uploadTask = uploadBytes(sRef, agencyLogoFile);
+        uploadTask.then(() => {
+          setUploadProgress(100);
+          return getDownloadURL(sRef);
+        }).then((url) => {
+          logoUrl = url;
+          setAgencyForm(prev => ({ ...prev, logoUrl }));
+        });
+        
+        await uploadTask;
         logoUrl = await getDownloadURL(sRef);
+        setIsUploading(false);
+        setUploadProgress(0);
       }
       await createAgency({ ...agencyForm, logoUrl });
       setAgencyForm({
@@ -301,6 +331,8 @@ const AdminDashboard = () => {
       loadData();
     } catch (error) {
       console.error('Failed to create agency:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -1135,6 +1167,90 @@ const AdminDashboard = () => {
                 <div>
                   <Label htmlFor="agencyLogo">Facility Logo</Label>
                   <Input id="agencyLogo" type="file" accept="image/*" onChange={(e) => setAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  
+                  {/* Image Preview */}
+                  {(agencyForm.logoUrl || agencyLogoFile) && (
+                    <div className="mt-3 p-3 border border-neutral-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-neutral-700">Logo Preview</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            if (agencyForm.logoUrl) {
+                              try {
+                                toast.loading('Deleting logo...', { id: 'delete-logo' });
+                                const success = await deleteImageFromStorage(agencyForm.logoUrl);
+                                if (success) {
+                                  setAgencyForm(prev => ({ ...prev, logoUrl: '' }));
+                                  setAgencyLogoFile(null);
+                                  // Also update the facility document in Firestore if it exists
+                                  if (editingAgency?.id) {
+                                    try {
+                                      console.log('Deleting logoUrl field from Firestore document:', editingAgency.id);
+                                      console.log('Current editingAgency:', editingAgency);
+                                      const docRef = doc(db, 'agencies', editingAgency.id);
+                                      console.log('Document reference:', docRef);
+                                      await updateDoc(docRef, {
+                                        logoUrl: deleteField()
+                                      });
+                                      console.log('Successfully deleted logoUrl field from Firestore');
+                                    } catch (error) {
+                                      console.error('Failed to update facility logo URL:', error);
+                                      console.error('Error details:', error);
+                                    }
+                                  } else {
+                                    console.log('No editingAgency.id found, skipping Firestore update');
+                                    console.log('editingAgency:', editingAgency);
+                                  }
+                                  toast.success('Logo deleted successfully', { id: 'delete-logo' });
+                                } else {
+                                  toast.error('Failed to delete logo', { id: 'delete-logo' });
+                                }
+                              } catch (error) {
+                                console.error('Error deleting logo:', error);
+                                toast.error('Failed to delete logo', { id: 'delete-logo' });
+                              }
+                            } else {
+                              setAgencyLogoFile(null);
+                              toast.success('Logo removed', { id: 'delete-logo' });
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={agencyLogoFile ? URL.createObjectURL(agencyLogoFile) : agencyForm.logoUrl}
+                          alt="Facility logo preview"
+                          className="w-16 h-16 object-cover rounded border"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm text-neutral-600">
+                            {agencyLogoFile ? agencyLogoFile.name : 'Uploaded logo'}
+                          </div>
+                          {agencyForm.logoUrl && (
+                            <div className="text-xs text-green-600">✓ Uploaded successfully</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {isUploading && (
+                    <div className="mt-2">
+                      <div className="text-sm text-neutral-600 mb-1">Uploading logo...</div>
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div 
+                          className="bg-brand-red-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1351,12 +1467,32 @@ const AdminDashboard = () => {
                   try {
                     if (!editingAgency?.id) return;
                     // Upload new logo if provided
-                    let logoUrl = editAgencyForm.logoUrl || editingAgency.logoUrl || '';
+                    let logoUrl = editAgencyForm.logoUrl;
+                    // If logoUrl is explicitly set to empty string (deleted), keep it empty
+                    // Otherwise, fall back to original value
+                    if (logoUrl === undefined) {
+                      logoUrl = editingAgency.logoUrl || '';
+                    }
                     if (editAgencyLogoFile) {
+                      setIsUploading(true);
+                      setUploadProgress(0);
                       const path = `facilities/${editingAgency.id}/logo-${editAgencyLogoFile.name}`;
                       const sRef = ref(storage, path);
-                      await uploadBytes(sRef, editAgencyLogoFile);
+                      
+                      // Upload with progress tracking
+                      const uploadTask = uploadBytes(sRef, editAgencyLogoFile);
+                      uploadTask.then(() => {
+                        setUploadProgress(100);
+                        return getDownloadURL(sRef);
+                      }).then((url) => {
+                        logoUrl = url;
+                        setEditAgencyForm(prev => ({ ...prev, logoUrl }));
+                      });
+                      
+                      await uploadTask;
                       logoUrl = await getDownloadURL(sRef);
+                      setIsUploading(false);
+                      setUploadProgress(0);
                     }
                     await updateDoc(doc(db, 'agencies', editingAgency.id), {
                       name: editAgencyName,
@@ -1364,7 +1500,7 @@ const AdminDashboard = () => {
                       timeZone: editAgencyForm.timeZone || null,
                       beds: editAgencyForm.beds ?? null,
                       numCNAs: editAgencyForm.numCNAs ?? null,
-                      logoUrl: logoUrl || null,
+                      logoUrl: logoUrl === '' ? deleteField() : (logoUrl || null),
                       mainPhone: editAgencyForm.mainPhone || '',
                       contactName: editAgencyForm.contactName || '',
                       contactPhone: editAgencyForm.contactPhone || '',
@@ -1380,6 +1516,8 @@ const AdminDashboard = () => {
                     await loadData();
                   } catch (err) {
                     console.error('Failed to update facility:', err);
+                    setIsUploading(false);
+                    setUploadProgress(0);
                   }
                 }}
                 className="space-y-4"
@@ -1449,6 +1587,91 @@ const AdminDashboard = () => {
                 <div>
                   <Label htmlFor="editFacilityLogo">Facility Logo</Label>
                   <Input id="editFacilityLogo" type="file" accept="image/*" onChange={(e) => setEditAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  
+                  {/* Image Preview */}
+                  {(editAgencyForm.logoUrl || editingAgency?.logoUrl || editAgencyLogoFile) && (
+                    <div className="mt-3 p-3 border border-neutral-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-neutral-700">Logo Preview</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const currentLogoUrl = editAgencyForm.logoUrl || editingAgency?.logoUrl;
+                            if (currentLogoUrl) {
+                              try {
+                                toast.loading('Deleting logo...', { id: 'delete-logo-edit' });
+                                const success = await deleteImageFromStorage(currentLogoUrl);
+                                if (success) {
+                                  setEditAgencyForm(prev => ({ ...prev, logoUrl: '' }));
+                                  setEditAgencyLogoFile(null);
+                                  // Update the facility document in Firestore
+                                  if (editingAgency?.id) {
+                                    try {
+                                      console.log('Deleting logoUrl field from Firestore document:', editingAgency.id);
+                                      console.log('Current editingAgency:', editingAgency);
+                                      const docRef = doc(db, 'agencies', editingAgency.id);
+                                      console.log('Document reference:', docRef);
+                                      await updateDoc(docRef, {
+                                        logoUrl: deleteField()
+                                      });
+                                      console.log('Successfully deleted logoUrl field from Firestore');
+                                    } catch (error) {
+                                      console.error('Failed to update facility logo URL:', error);
+                                      console.error('Error details:', error);
+                                    }
+                                  } else {
+                                    console.log('No editingAgency.id found, skipping Firestore update');
+                                    console.log('editingAgency:', editingAgency);
+                                  }
+                                  toast.success('Logo deleted successfully', { id: 'delete-logo-edit' });
+                                } else {
+                                  toast.error('Failed to delete logo', { id: 'delete-logo-edit' });
+                                }
+                              } catch (error) {
+                                console.error('Error deleting logo:', error);
+                                toast.error('Failed to delete logo', { id: 'delete-logo-edit' });
+                              }
+                            } else {
+                              setEditAgencyLogoFile(null);
+                              toast.success('Logo removed', { id: 'delete-logo-edit' });
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={editAgencyLogoFile ? URL.createObjectURL(editAgencyLogoFile) : (editAgencyForm.logoUrl || editingAgency?.logoUrl)}
+                          alt="Facility logo preview"
+                          className="w-16 h-16 object-cover rounded border"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm text-neutral-600">
+                            {editAgencyLogoFile ? editAgencyLogoFile.name : 'Current logo'}
+                          </div>
+                          {(editAgencyForm.logoUrl || editingAgency?.logoUrl) && (
+                            <div className="text-xs text-green-600">✓ Logo available</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {isUploading && (
+                    <div className="mt-2">
+                      <div className="text-sm text-neutral-600 mb-1">Uploading logo...</div>
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div 
+                          className="bg-brand-red-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
