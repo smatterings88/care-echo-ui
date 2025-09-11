@@ -336,7 +336,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleCreateAgencyFromUser = async (e: React.FormEvent) => {
+  const handleCreateFacilityFromUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const newAgency = await createAgency(agencyForm);
@@ -719,7 +719,7 @@ const AdminDashboard = () => {
         {/* Create User Modal */}
         {showCreateUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New User</h2>
               {createUserError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -955,7 +955,7 @@ const AdminDashboard = () => {
         {/* Edit User Modal */}
         {editingUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Edit User</h2>
               <form onSubmit={submitEditUser} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1099,7 +1099,7 @@ const AdminDashboard = () => {
         {/* Create Agency Modal */}
         {showCreateAgency && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Facility</h2>
               <form onSubmit={handleCreateAgency} className="space-y-4">
                 <div>
@@ -1299,19 +1299,19 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Create Agency Modal (from User Creation) */}
+        {/* Create Facility Modal (from User Creation) */}
         {showCreateAgencyFromUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Create New Facility</h2>
               <p className="text-sm text-neutral-600 mb-4">
                 Create a new facility to assign to the user you're creating.
               </p>
-              <form onSubmit={handleCreateAgencyFromUser} className="space-y-4">
+              <form onSubmit={handleCreateFacilityFromUser} className="space-y-4">
                 <div>
-                  <Label htmlFor="agencyNameFromUser">Facility Name</Label>
+                  <Label htmlFor="facilityNameFromUser">Facility Name</Label>
                   <Input
-                    id="agencyNameFromUser"
+                    id="facilityNameFromUser"
                     value={agencyForm.name}
                     onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))}
                     required
@@ -1337,7 +1337,7 @@ const AdminDashboard = () => {
         {/* Bulk Import Modal */}
         {showBulkImport && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-2xl p-6">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
               <div className="flex items-start justify-between mb-4">
                 <h2 className="text-xl font-bold text-neutral-900">Bulk Import Users (CSV)</h2>
                 <Button variant="ghost" onClick={() => setShowBulkImport(false)}>Close</Button>
@@ -1459,7 +1459,7 @@ const AdminDashboard = () => {
         {/* Edit Facility Modal */}
         {editingAgency && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold text-neutral-900 mb-4">Edit Facility</h2>
               <form
                 onSubmit={async (e) => {

@@ -74,7 +74,7 @@ const Index = () => {
       {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-md relative">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowLoginModal(false)}
               className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-700 text-2xl"
