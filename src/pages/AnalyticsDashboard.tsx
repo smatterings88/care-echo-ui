@@ -19,11 +19,13 @@ import {
   AlertTriangle,
   Smile,
   Meh,
-  Frown
+  Frown,
+  Building2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SurveyAnalytics, SurveyResponse, SurveyFilters } from "@/types/survey";
+import { AgencyData } from "@/types/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +49,7 @@ const AnalyticsDashboard = () => {
   const { toast } = useToast();
   const { user, getSurveyAnalytics, getSurveyResponses, getAgencies } = useAuth();
   const [analytics, setAnalytics] = useState<SurveyAnalytics | null>(null);
-  const [agencies, setAgencies] = useState<Array<{id: string, name: string}>>([]);
+  const [agencies, setAgencies] = useState<AgencyData[]>([]);
   const [responsesRaw, setResponsesRaw] = useState<SurveyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -456,6 +458,75 @@ const AnalyticsDashboard = () => {
               </SelectContent>
             </Select>
           )}
+        </div>
+
+        {/* Facility Display */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-neutral-700 mb-3">Data Sources</h3>
+          <div className="flex flex-wrap gap-3">
+            {(() => {
+              // Determine which facilities are being shown
+              let facilitiesToShow: AgencyData[] = [];
+              
+              if (user?.role === 'super_admin') {
+                if (agencyFilter === 'all') {
+                  facilitiesToShow = agencies;
+                } else {
+                  const selectedFacility = agencies.find(a => a.id === agencyFilter);
+                  if (selectedFacility) facilitiesToShow = [selectedFacility];
+                }
+              } else if (user?.role === 'org_admin') {
+                if (selectedAgency === 'all') {
+                  facilitiesToShow = agencies.filter(agency => user?.agencyIds?.includes(agency.id));
+                } else {
+                  const selectedFacility = agencies.find(a => a.id === selectedAgency);
+                  if (selectedFacility) facilitiesToShow = [selectedFacility];
+                }
+              } else if (user?.role === 'site_admin') {
+                const userFacility = agencies.find(a => a.id === user?.agencyId);
+                if (userFacility) facilitiesToShow = [userFacility];
+              }
+
+              if (facilitiesToShow.length === 0) {
+                return (
+                  <div className="text-sm text-neutral-500 italic">
+                    No facilities available
+                  </div>
+                );
+              }
+
+              return facilitiesToShow.map((facility) => (
+                <div
+                  key={facility.id}
+                  className="flex items-center space-x-2 bg-white border border-neutral-200 rounded-lg px-3 py-2"
+                >
+                  {/* Facility Logo */}
+                  <div className="flex-shrink-0">
+                    {facility.logoUrl ? (
+                      <img
+                        src={facility.logoUrl}
+                        alt={`${facility.name} logo`}
+                        className="w-6 h-6 object-cover rounded border border-neutral-200"
+                        onError={(e) => {
+                          // Hide image if it fails to load
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-6 h-6 bg-neutral-100 rounded border border-neutral-200 flex items-center justify-center">
+                        <Building2 className="h-3 w-3 text-neutral-400" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Facility Name */}
+                  <span className="text-sm font-medium text-neutral-700">
+                    {facility.name}
+                  </span>
+                </div>
+              ));
+            })()}
+          </div>
         </div>
 
         {/* Overview Cards */}

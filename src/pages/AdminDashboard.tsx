@@ -339,11 +339,36 @@ const AdminDashboard = () => {
   const handleCreateFacilityFromUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newAgency = await createAgency(agencyForm);
+      let logoUrl = agencyForm.logoUrl || '';
+      // Upload logo first if provided
+      if (agencyLogoFile) {
+        setIsUploading(true);
+        setUploadProgress(0);
+        const tmpId = crypto?.randomUUID?.() || `${Date.now()}`;
+        const path = `facilities/tmp-${tmpId}/logo-${agencyLogoFile.name}`;
+        const sRef = ref(storage, path);
+        
+        // Upload with progress tracking
+        const uploadTask = uploadBytes(sRef, agencyLogoFile);
+        uploadTask.then(() => {
+          setUploadProgress(100);
+          return getDownloadURL(sRef);
+        }).then((url) => {
+          logoUrl = url;
+          setAgencyForm(prev => ({ ...prev, logoUrl }));
+        });
+        
+        await uploadTask;
+        logoUrl = await getDownloadURL(sRef);
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+      const newAgency = await createAgency({ ...agencyForm, logoUrl });
       setAgencyForm({
         name: '',
         adminId: user?.uid || '',
       });
+      setAgencyLogoFile(null);
       setShowCreateAgencyFromUser(false);
       // Reload agencies to update the dropdown
       const agenciesData = await getAgencies();
@@ -353,7 +378,9 @@ const AdminDashboard = () => {
         setUserForm(prev => ({ ...prev, agencyId: newAgency.id }));
       }
     } catch (error) {
-      console.error('Failed to create agency:', error);
+      console.error('Failed to create facility:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -652,24 +679,46 @@ const AdminDashboard = () => {
             {filteredAgencies.map((agency) => (
               <Card key={agency.id} className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
-                    {(() => {
-                      const count = users.filter(u => u.agencyId === agency.id).length;
-                      const label = `${count} ${count === 1 ? 'user' : 'users'}`;
-                      return (
-                        <button
-                          type="button"
-                          className="text-neutral-600 underline-offset-2 hover:underline focus:outline-none"
-                          onClick={() => setOpenAgencyUsersFor(agency.id)}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })()}
-                    <p className="text-xs text-neutral-500">
-                      Created: {toDateSafely(agency.createdAt).toLocaleDateString()}
-                    </p>
+                  <div className="flex items-center space-x-4">
+                    {/* Facility Logo */}
+                    <div className="flex-shrink-0">
+                      {agency.logoUrl ? (
+                        <img
+                          src={agency.logoUrl}
+                          alt={`${agency.name} logo`}
+                          className="w-12 h-12 object-cover rounded-lg border border-neutral-200"
+                          onError={(e) => {
+                            // Hide image if it fails to load
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center">
+                          <Building2 className="h-6 w-6 text-neutral-400" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Facility Info */}
+                    <div>
+                      <h3 className="font-semibold text-neutral-900">{agency.name}</h3>
+                      {(() => {
+                        const count = users.filter(u => u.agencyId === agency.id).length;
+                        const label = `${count} ${count === 1 ? 'user' : 'users'}`;
+                        return (
+                          <button
+                            type="button"
+                            className="text-neutral-600 underline-offset-2 hover:underline focus:outline-none"
+                            onClick={() => setOpenAgencyUsersFor(agency.id)}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })()}
+                      <p className="text-xs text-neutral-500">
+                        Created: {toDateSafely(agency.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {user?.role !== 'site_admin' && (
@@ -1310,12 +1359,164 @@ const AdminDashboard = () => {
               <form onSubmit={handleCreateFacilityFromUser} className="space-y-4">
                 <div>
                   <Label htmlFor="facilityNameFromUser">Facility Name</Label>
-                  <Input
-                    id="facilityNameFromUser"
-                    value={agencyForm.name}
-                    onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))}
-                    required
-                  />
+                  <Input id="facilityNameFromUser" value={agencyForm.name} onChange={(e) => setAgencyForm(prev => ({ ...prev, name: e.target.value }))} required />
+                </div>
+                <div>
+                  <Label htmlFor="facilityAddressFromUser">Address</Label>
+                  <Input id="facilityAddressFromUser" value={agencyForm.address || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, address: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="facilityTZFromUser">Time Zone</Label>
+                    <Popover open={createTimezoneOpen} onOpenChange={setCreateTimezoneOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={createTimezoneOpen}
+                          className="w-full justify-between"
+                        >
+                          {agencyForm.timeZone || defaultTimeZone}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search timezone..." />
+                          <CommandList>
+                            <CommandEmpty>No timezone found.</CommandEmpty>
+                            <CommandGroup>
+                              {timeZoneOptions.map((tz) => (
+                                <CommandItem
+                                  key={tz.value}
+                                  value={tz.label}
+                                  onSelect={(currentValue) => {
+                                    setAgencyForm(prev => ({ ...prev, timeZone: tz.value }));
+                                    setCreateTimezoneOpen(false);
+                                  }}
+                                >
+                                  {tz.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label htmlFor="facilityBedsFromUser"># of Beds</Label>
+                    <Input id="facilityBedsFromUser" type="number" min={0} value={agencyForm.beds ?? ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, beds: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="facilityCNAsFromUser"># of CNA's</Label>
+                    <Input id="facilityCNAsFromUser" type="number" min={0} value={agencyForm.numCNAs ?? 10} onChange={(e) => setAgencyForm(prev => ({ ...prev, numCNAs: e.target.value ? Number(e.target.value) : undefined }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="facilityMainPhoneFromUser">Main Phone</Label>
+                    <Input id="facilityMainPhoneFromUser" value={agencyForm.mainPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, mainPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="facilityLogoFromUser">Facility Logo</Label>
+                  <Input id="facilityLogoFromUser" type="file" accept="image/*" onChange={(e) => setAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  
+                  {/* Image Preview */}
+                  {(agencyForm.logoUrl || agencyLogoFile) && (
+                    <div className="mt-3 p-3 border border-neutral-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-neutral-700">Logo Preview</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            if (agencyForm.logoUrl) {
+                              try {
+                                toast.loading('Deleting logo...', { id: 'delete-logo-from-user' });
+                                const success = await deleteImageFromStorage(agencyForm.logoUrl);
+                                if (success) {
+                                  setAgencyForm(prev => ({ ...prev, logoUrl: '' }));
+                                  setAgencyLogoFile(null);
+                                  toast.success('Logo deleted successfully', { id: 'delete-logo-from-user' });
+                                } else {
+                                  toast.error('Failed to delete logo', { id: 'delete-logo-from-user' });
+                                }
+                              } catch (error) {
+                                console.error('Error deleting logo:', error);
+                                toast.error('Failed to delete logo', { id: 'delete-logo-from-user' });
+                              }
+                            } else {
+                              setAgencyLogoFile(null);
+                              toast.success('Logo removed', { id: 'delete-logo-from-user' });
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={agencyLogoFile ? URL.createObjectURL(agencyLogoFile) : agencyForm.logoUrl}
+                          alt="Facility logo preview"
+                          className="w-16 h-16 object-cover rounded border"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm text-neutral-600">
+                            {agencyLogoFile ? agencyLogoFile.name : 'Uploaded logo'}
+                          </div>
+                          {agencyForm.logoUrl && (
+                            <div className="text-xs text-green-600">✓ Uploaded successfully</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {isUploading && (
+                    <div className="mt-2">
+                      <div className="text-sm text-neutral-600 mb-1">Uploading logo...</div>
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div 
+                          className="bg-brand-red-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contactNameFromUser">Contact Name</Label>
+                    <Input id="contactNameFromUser" value={agencyForm.contactName || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactPhoneFromUser">Contact Phone</Label>
+                    <Input id="contactPhoneFromUser" value={agencyForm.contactPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contactEmailFromUser">Contact Email</Label>
+                    <Input id="contactEmailFromUser" type="email" value={agencyForm.contactEmail || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, contactEmail: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="billingContactFromUser">Billing Contact</Label>
+                    <Input id="billingContactFromUser" value={agencyForm.billingContactName || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="billingPhoneFromUser">Billing Contact Phone</Label>
+                    <Input id="billingPhoneFromUser" value={agencyForm.billingContactPhone || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactPhone: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="billingEmailFromUser">Billing Contact Email</Label>
+                  <Input id="billingEmailFromUser" type="email" value={agencyForm.billingContactEmail || ''} onChange={(e) => setAgencyForm(prev => ({ ...prev, billingContactEmail: e.target.value }))} />
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="btn-primary flex-1">
