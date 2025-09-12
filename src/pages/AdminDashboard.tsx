@@ -281,6 +281,14 @@ const AdminDashboard = () => {
         return;
       }
 
+    // Validate that org admins can only assign users to their facilities
+    if (user?.role === 'org_admin' && user.agencyIds && userForm.agencyId) {
+      if (!user.agencyIds.includes(userForm.agencyId)) {
+        setCreateUserError('You can only assign users to your assigned facilities.');
+        return;
+      }
+    }
+
       // Enforce agency user constraints: force role=user and agencyId to creator's agency
       let payload: CreateUserData;
       if (user?.role === 'site_admin') {
@@ -443,6 +451,25 @@ const AdminDashboard = () => {
   const submitEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+    
+    // Validate that org admins can only edit users within their scope
+    if (user?.role === 'org_admin' && user.agencyIds) {
+      const userAgencyId = editForm.agencyId || editingUser.agencyId;
+      if (userAgencyId && !user.agencyIds.includes(userAgencyId)) {
+        alert('You can only edit users within your assigned facilities.');
+        return;
+      }
+    }
+    
+    // Validate that site admins can only edit users within their facility
+    if (user?.role === 'site_admin' && user.agencyId) {
+      const userAgencyId = editForm.agencyId || editingUser.agencyId;
+      if (userAgencyId && userAgencyId !== user.agencyId) {
+        alert('You can only edit users within your assigned facility.');
+        return;
+      }
+    }
+    
     try {
       const firstName = editForm.firstName || editingUser.firstName || '';
       const lastName = editForm.lastName || editingUser.lastName || '';
@@ -636,7 +663,7 @@ const AdminDashboard = () => {
               </Button>
             </div>
           ) : (
-            user?.role !== 'site_admin' && (
+            user?.role === 'super_admin' && (
               <Button
                 onClick={() => setShowCreateAgency(true)}
                 className="btn-primary"
@@ -763,7 +790,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {user?.role !== 'site_admin' && (
+                    {user?.role === 'super_admin' && (
                       <>
                         <Button
                           variant="outline"
@@ -863,9 +890,52 @@ const AdminDashboard = () => {
                     This user will be assigned to your facility automatically.
                   </div>
                 ) : user?.role === 'org_admin' ? (
-                  <div className="text-sm text-neutral-600">
-                    You can create users for your assigned facilities.
-                  </div>
+                  <>
+                    <div>
+                      <Label htmlFor="role">Role</Label>
+                      <Select
+                        value={userForm.role}
+                        onValueChange={(value: UserRole) => setUserForm(prev => ({ ...prev, role: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="site_admin">Site Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="agencyId">
+                          Assign Facility *
+                        </Label>
+                      </div>
+                      <Select
+                        value={userForm.agencyId || ''}
+                        onValueChange={(value: string) => setUserForm(prev => ({ ...prev, agencyId: value === 'none' ? '' : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a facility" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Select a facility</SelectItem>
+                          {agencies
+                            .filter(agency => {
+                              // For org admins, only show agencies they have access to
+                              if (user?.role === 'org_admin' && user.agencyIds) {
+                                return user.agencyIds.includes(agency.id);
+                              }
+                              return true;
+                            })
+                            .map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div>
@@ -925,9 +995,22 @@ const AdminDashboard = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Select a facility</SelectItem>
-                              {agencies.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                              ))}
+                              {agencies
+                                .filter(agency => {
+                                  // For org admins, only show agencies they have access to
+                                  if (user?.role === 'org_admin' && user.agencyIds) {
+                                    return user.agencyIds.includes(agency.id);
+                                  }
+                                  // For site admins, only show their assigned agency
+                                  if (user?.role === 'site_admin' && user.agencyId) {
+                                    return agency.id === user.agencyId;
+                                  }
+                                  // For super admins, show all agencies
+                                  return true;
+                                })
+                                .map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                           {userForm.agencyIds && userForm.agencyIds.length > 0 && (
@@ -1101,9 +1184,22 @@ const AdminDashboard = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {agencies.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                      ))}
+                      {agencies
+                        .filter(agency => {
+                          // For org admins, only show agencies they have access to
+                          if (user?.role === 'org_admin' && user.agencyIds) {
+                            return user.agencyIds.includes(agency.id);
+                          }
+                          // For site admins, only show their assigned agency
+                          if (user?.role === 'site_admin' && user.agencyId) {
+                            return agency.id === user.agencyId;
+                          }
+                          // For super admins, show all agencies
+                          return true;
+                        })
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -116,6 +116,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           }
 
+          // Load facility names for org admins and site admins
+          if (userData.role === 'org_admin' && userData.agencyIds && userData.agencyIds.length > 0) {
+            try {
+              const agencies = await getAgenciesByIds(userData.agencyIds);
+              userData.agencyNames = agencies.map(agency => agency.name);
+            } catch (error) {
+              console.error('Error loading agency names for org admin:', error);
+            }
+          } else if (userData.role === 'site_admin' && userData.agencyId) {
+            try {
+              const agencies = await getAgenciesByIds([userData.agencyId]);
+              if (agencies.length > 0) {
+                userData.agencyName = agencies[0].name;
+              }
+            } catch (error) {
+              console.error('Error loading agency name for site admin:', error);
+            }
+          }
+
           setState({
             user: userData,
             loading: false,

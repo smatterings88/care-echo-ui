@@ -174,7 +174,28 @@ const Header = () => {
                        'User'}
                     </span>
                   </DropdownMenuItem>
-                  {user.agencyName && (
+                  {/* Show facility names for different user types */}
+                  {user.role === 'org_admin' && user.agencyNames && user.agencyNames.length > 0 && (
+                    <DropdownMenuItem disabled>
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs font-medium text-neutral-700">Assigned Facilities:</span>
+                        {user.agencyNames.map((facilityName, index) => (
+                          <span key={index} className="text-xs text-neutral-600 ml-2">
+                            • {facilityName}
+                          </span>
+                        ))}
+                      </div>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === 'site_admin' && user.agencyName && (
+                    <DropdownMenuItem disabled>
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs font-medium text-neutral-700">Assigned Facility:</span>
+                        <span className="text-xs text-neutral-600 ml-2">• {user.agencyName}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === 'user' && user.agencyName && (
                     <DropdownMenuItem disabled>
                       <span className="text-xs text-neutral-600">{user.agencyName}</span>
                     </DropdownMenuItem>
