@@ -551,14 +551,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const requiredLevel = roleHierarchy[requiredRole];
     const hasAccess = userLevel >= requiredLevel;
 
-    console.log('hasPermission Debug:', {
-      userRole: state.user.role,
-      userLevel,
-      requiredRole,
-      requiredLevel,
-      hasAccess,
-      userEmail: state.user.email
-    });
 
     return hasAccess;
   };

@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "sonner";
+import ImageCrop from "@/components/ImageCrop";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -130,6 +131,11 @@ const AdminDashboard = () => {
   // Timezone dropdown state
   const [createTimezoneOpen, setCreateTimezoneOpen] = useState(false);
   const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
+  
+  // Image crop state
+  const [showImageCrop, setShowImageCrop] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<'create' | 'edit' | null>(null);
 
   // Function to delete image from storage
   const deleteImageFromStorage = async (imageUrl: string) => {
@@ -141,6 +147,42 @@ const AdminDashboard = () => {
       console.error('Error deleting image:', error);
       return false;
     }
+  };
+
+  // Handle file selection for cropping
+  const handleFileSelect = (file: File, type: 'create' | 'edit') => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageSrc = e.target?.result as string;
+      setImageToCrop(imageSrc);
+      setCropType(type);
+      setShowImageCrop(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle cropped image
+  const handleCroppedImage = (croppedBlob: Blob) => {
+    console.log('handleCroppedImage called with blob:', croppedBlob);
+    const file = new File([croppedBlob], 'cropped-logo.jpg', { type: 'image/jpeg' });
+    
+    if (cropType === 'create') {
+      setAgencyLogoFile(file);
+    } else if (cropType === 'edit') {
+      setEditAgencyLogoFile(file);
+    }
+    
+    setShowImageCrop(false);
+    setImageToCrop(null);
+    setCropType(null);
+    toast.success('Image cropped successfully');
+  };
+
+  // Cancel cropping
+  const handleCancelCrop = () => {
+    setShowImageCrop(false);
+    setImageToCrop(null);
+    setCropType(null);
   };
 
   // Time zones list (use Intl.supportedValuesOf if available, else fallback)
@@ -1215,7 +1257,17 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <Label htmlFor="agencyLogo">Facility Logo</Label>
-                  <Input id="agencyLogo" type="file" accept="image/*" onChange={(e) => setAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  <Input 
+                    id="agencyLogo" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      if (file) {
+                        handleFileSelect(file, 'create');
+                      }
+                    }} 
+                  />
                   
                   {/* Image Preview */}
                   {(agencyForm.logoUrl || agencyLogoFile) && (
@@ -1421,7 +1473,17 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <Label htmlFor="facilityLogoFromUser">Facility Logo</Label>
-                  <Input id="facilityLogoFromUser" type="file" accept="image/*" onChange={(e) => setAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  <Input 
+                    id="facilityLogoFromUser" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      if (file) {
+                        handleFileSelect(file, 'create');
+                      }
+                    }} 
+                  />
                   
                   {/* Image Preview */}
                   {(agencyForm.logoUrl || agencyLogoFile) && (
@@ -1787,7 +1849,17 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <Label htmlFor="editFacilityLogo">Facility Logo</Label>
-                  <Input id="editFacilityLogo" type="file" accept="image/*" onChange={(e) => setEditAgencyLogoFile(e.currentTarget.files?.[0] || null)} />
+                  <Input 
+                    id="editFacilityLogo" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      if (file) {
+                        handleFileSelect(file, 'edit');
+                      }
+                    }} 
+                  />
                   
                   {/* Image Preview */}
                   {(editAgencyForm.logoUrl || editingAgency?.logoUrl || editAgencyLogoFile) && (
@@ -1915,6 +1987,17 @@ const AdminDashboard = () => {
               </form>
             </Card>
           </div>
+        )}
+
+        {/* Image Crop Modal */}
+        {showImageCrop && imageToCrop && (
+          <ImageCrop
+            imageSrc={imageToCrop}
+            onCrop={handleCroppedImage}
+            onCancel={handleCancelCrop}
+            aspectRatio={1}
+            cropSize={{ width: 200, height: 200 }}
+          />
         )}
       </div>
     </div>

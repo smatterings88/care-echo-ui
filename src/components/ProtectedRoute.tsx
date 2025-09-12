@@ -33,13 +33,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} replace />;
   }
 
-  // Debug logging
-  console.log('ProtectedRoute Debug:', {
-    userRole: user.role,
-    requiredRole,
-    hasPermission: hasPermission(requiredRole),
-    userEmail: user.email
-  });
 
   if (!hasPermission(requiredRole)) {
     return (
