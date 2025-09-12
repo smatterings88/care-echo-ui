@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { auth, db, storage } from "@/lib/firebase";
@@ -75,6 +75,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'agencies'>('users');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string>('all');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateAgency, setShowCreateAgency] = useState(false);
   const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
@@ -222,6 +224,24 @@ const AdminDashboard = () => {
       }));
     }
   }, [showCreateUser, user]);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset filters when switching tabs
+  useEffect(() => {
+    if (activeTab === 'users') {
+      setSearchTerm('');
+      setDebouncedSearchTerm('');
+      setSelectedFacilityId('all');
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -491,14 +511,35 @@ const AdminDashboard = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      // Search filter (using debounced term)
+      const matchesSearch = debouncedSearchTerm === '' || 
+        user.displayName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      
+      // Facility filter
+      const matchesFacility = selectedFacilityId === 'all' || user.agencyId === selectedFacilityId;
+      
+      return matchesSearch && matchesFacility;
+    });
+  }, [users, debouncedSearchTerm, selectedFacilityId]);
 
   const filteredAgencies = agencies.filter(agency =>
     (agency.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Get available facilities for filter based on admin scope
+  const getAvailableFacilities = () => {
+    if (user?.role === 'super_admin') {
+      return agencies; // All facilities
+    } else if (user?.role === 'org_admin' && user.agencyIds) {
+      return agencies.filter(agency => user.agencyIds?.includes(agency.id)); // Assigned facilities
+    } else if (user?.role === 'site_admin' && user.agencyId) {
+      return agencies.filter(agency => agency.id === user.agencyId); // Single facility
+    }
+    return [];
+  };
 
   if (loading) {
     return (
@@ -675,26 +716,105 @@ const AdminDashboard = () => {
           )}
         </div>
 
+        {/* Search and Filter Controls */}
+        {activeTab === 'users' ? (
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <Input
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {/* Facility Filter */}
+            <div className="sm:w-64">
+              <Select value={selectedFacilityId} onValueChange={setSelectedFacilityId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Facilities</SelectItem>
+                  {getAvailableFacilities().map((facility) => (
+                    <SelectItem key={facility.id} value={facility.id}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : null}
+
         {/* Content */}
         {activeTab === 'users' ? (
-          <div className="grid gap-4">
+          <div>
+            {/* Results Counter */}
+            <div className="mb-4 text-sm text-neutral-600">
+              Showing {filteredUsers.length} of {users.length} users
+              {(debouncedSearchTerm || selectedFacilityId !== 'all') && (
+                <span className="ml-2">
+                  {debouncedSearchTerm && `matching "${debouncedSearchTerm}"`}
+                  {debouncedSearchTerm && selectedFacilityId !== 'all' && ' and '}
+                  {selectedFacilityId !== 'all' && (
+                    <>
+                      from {agencies.find(a => a.id === selectedFacilityId)?.name || 'selected facility'}
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+            
+            <div className="grid gap-4">
             {filteredUsers.map((user) => (
               <Card key={user.uid} className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-neutral-900">{user.displayName}</h3>
-                    <p className="text-neutral-600">{user.email}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
-                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
-                        'bg-neutral-200 text-neutral-700'
-                      }`}>
-                        {user.role}
-                      </span>
-                      {user.agencyName && (
-                        <span className="text-xs text-neutral-500">{user.agencyName}</span>
-                      )}
+                  <div className="flex items-center space-x-4">
+                    {/* Facility Logo */}
+                    <div className="flex-shrink-0">
+                      {(() => {
+                        const userAgency = agencies.find(agency => agency.id === user.agencyId);
+                        if (userAgency?.logoUrl) {
+                          return (
+                            <img
+                              src={userAgency.logoUrl}
+                              alt={`${userAgency.name} logo`}
+                              className="w-12 h-12 object-cover rounded-lg border border-neutral-200"
+                              onError={(e) => {
+                                // Hide image if it fails to load
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          );
+                        } else {
+                          return (
+                            <div className="w-12 h-12 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center">
+                              <Building2 className="h-6 w-6 text-neutral-400" />
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                    
+                    {/* User Info */}
+                    <div>
+                      <h3 className="font-semibold text-neutral-900">{user.displayName}</h3>
+                      <p className="text-neutral-600">{user.email}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                          user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                          'bg-neutral-200 text-neutral-700'
+                        }`}>
+                          {user.role}
+                        </span>
+                        {user.agencyName && (
+                          <span className="text-xs text-neutral-500">{user.agencyName}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -742,6 +862,7 @@ const AdminDashboard = () => {
                 </div>
               </Card>
             ))}
+            </div>
           </div>
         ) : (
           <div className="grid gap-4">
