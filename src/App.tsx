@@ -14,6 +14,7 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import UserCheckin from "./pages/UserCheckin";
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
+import MediaDemo from "./pages/MediaDemo";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
                 <ChangePassword />
               </ProtectedRoute>
             } />
+            <Route path="/media-demo" element={<MediaDemo />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

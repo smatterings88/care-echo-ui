@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "sonner";
-import ImageCrop from "@/components/ImageCrop";
+import ImageUploaderCropper from "@/components/media/ImageUploaderCropper";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -911,37 +911,42 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Edit Facility Button - Available to super admins and org admins for their assigned facilities */}
+                    {(user?.role === 'super_admin' || 
+                      (user?.role === 'org_admin' && user.agencyIds && user.agencyIds.includes(agency.id))) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingAgency(agency);
+                          setEditAgencyName(agency.name || '');
+                          setEditAgencyForm({
+                            address: agency.address || '',
+                            timeZone: agency.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                            beds: agency.beds,
+                            numCNAs: agency.numCNAs ?? 10,
+                            logoUrl: agency.logoUrl || '',
+                            mainPhone: agency.mainPhone || '',
+                            contactName: agency.contactName || '',
+                            contactPhone: agency.contactPhone || '',
+                            contactEmail: agency.contactEmail || '',
+                            billingContactName: agency.billingContactName || '',
+                            billingContactPhone: agency.billingContactPhone || '',
+                            billingContactEmail: agency.billingContactEmail || '',
+                          });
+                          setEditAgencyLogoFile(null);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit Facility
+                      </Button>
+                    )}
+                    
+                    {/* Delete Facility Button - Only available to super admins */}
                     {user?.role === 'super_admin' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditingAgency(agency);
-                            setEditAgencyName(agency.name || '');
-                            setEditAgencyForm({
-                              address: agency.address || '',
-                              timeZone: agency.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                              beds: agency.beds,
-                              numCNAs: agency.numCNAs ?? 10,
-                              logoUrl: agency.logoUrl || '',
-                              mainPhone: agency.mainPhone || '',
-                              contactName: agency.contactName || '',
-                              contactPhone: agency.contactPhone || '',
-                              contactEmail: agency.contactEmail || '',
-                              billingContactName: agency.billingContactName || '',
-                              billingContactPhone: agency.billingContactPhone || '',
-                              billingContactEmail: agency.billingContactEmail || '',
-                            });
-                            setEditAgencyLogoFile(null);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-error hover:text-error">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                      <Button variant="outline" size="sm" className="text-error hover:text-error">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1944,6 +1949,15 @@ const AdminDashboard = () => {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  
+                  // Validate that org admins can only edit their assigned facilities
+                  if (user?.role === 'org_admin' && user.agencyIds && editingAgency?.id) {
+                    if (!user.agencyIds.includes(editingAgency.id)) {
+                      alert('You can only edit facilities assigned to you.');
+                      return;
+                    }
+                  }
+                  
                   try {
                     if (!editingAgency?.id) return;
                     // Upload new logo if provided
@@ -2208,13 +2222,19 @@ const AdminDashboard = () => {
 
         {/* Image Crop Modal */}
         {showImageCrop && imageToCrop && (
-          <ImageCrop
-            imageSrc={imageToCrop}
-            onCrop={handleCroppedImage}
-            onCancel={handleCancelCrop}
-            aspectRatio={1}
-            cropSize={{ width: 200, height: 200 }}
-          />
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-2xl p-4">
+              <ImageUploaderCropper
+                value={imageToCrop}
+                aspect="1:1"
+                outputWidth={256}
+                onChange={(blob) => { handleCroppedImage(blob); handleCancelCrop(); }}
+              />
+              <div className="mt-3 text-right">
+                <button className="px-3 py-2 rounded border" onClick={handleCancelCrop}>Cancel</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

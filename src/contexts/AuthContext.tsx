@@ -47,6 +47,7 @@ interface AuthContextType extends AuthState {
   // Survey completion tracking
   getSurveyCompletionStatus: (userId: string, date: string) => Promise<{ start: boolean; end: boolean }>;
   markSurveyCompleted: (userId: string, surveyType: 'start' | 'end', date: string) => Promise<void>;
+  getContinuousDaysCount: (userId: string) => Promise<number>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -745,6 +746,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getContinuousDaysCount = async (userId: string): Promise<number> => {
+    try {
+      // Get all survey completions for this user
+      const completionsQuery = query(
+        collection(db, 'surveyCompletions'),
+        where('userId', '==', userId)
+      );
+      const completionsSnapshot = await getDocs(completionsQuery);
+      
+      if (completionsSnapshot.empty) {
+        return 0;
+      }
+
+      // Convert to array and sort by date (newest first)
+      const completions = completionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        date: doc.data().date,
+        start: doc.data().start || false,
+        end: doc.data().end || false,
+      })).sort((a, b) => b.date.localeCompare(a.date));
+
+      // Calculate continuous days
+      let continuousDays = 0;
+      const today = new Date();
+      
+      // Start from today and work backwards
+      for (let i = 0; i < 365; i++) { // Check up to 1 year back
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() - i);
+        const dateString = checkDate.toISOString().split('T')[0];
+        
+        // Find completion for this date
+        const dayCompletion = completions.find(comp => comp.date === dateString);
+        
+        if (dayCompletion && dayCompletion.start === true && dayCompletion.end === true) {
+          // Both start and end surveys completed for this day
+          continuousDays++;
+        } else {
+          // Missing either start or end survey, break the streak
+          break;
+        }
+      }
+      
+      return continuousDays;
+    } catch (error: unknown) {
+      console.error('Error calculating continuous days:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to calculate continuous days');
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -764,6 +815,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getSurveyAnalytics,
     getSurveyCompletionStatus,
     markSurveyCompleted,
+    getContinuousDaysCount,
   };
 
   return (

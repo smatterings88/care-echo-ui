@@ -26,7 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SurveyAnalytics, SurveyResponse, SurveyFilters } from "@/types/survey";
 import { AgencyData } from "@/types/auth";
-import {
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ChartContainer,
@@ -42,7 +43,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { Bar, BarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
 
 const AnalyticsDashboard = () => {
   const navigate = useNavigate();
@@ -590,7 +591,16 @@ const AnalyticsDashboard = () => {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-neutral-900">Mood Distribution</h3>
-              <BarChart3 className="h-5 w-5 text-neutral-600" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <BarChart3 className="h-5 w-5 text-neutral-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Distribution of moods across all responses in scope.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -598,7 +608,7 @@ const AnalyticsDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
                   <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip 
+                  <RechartsTooltip 
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
@@ -629,7 +639,16 @@ const AnalyticsDashboard = () => {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-neutral-900">Main Concerns</h3>
-              <PieChart className="h-5 w-5 text-neutral-600" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PieChart className="h-5 w-5 text-neutral-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Top concern categories selected in responses.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -647,7 +666,7 @@ const AnalyticsDashboard = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <RechartsTooltip 
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
@@ -685,7 +704,16 @@ const AnalyticsDashboard = () => {
           <Card className="p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-neutral-900">Response Trends</h3>
-              <LineChart className="h-5 w-5 text-neutral-600" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <LineChart className="h-5 w-5 text-neutral-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Daily responses and average mood over time.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -693,7 +721,7 @@ const AnalyticsDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
                   <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip 
+                  <RechartsTooltip 
                     content={({ active, payload, label }) => {
                       if (active && payload && payload.length) {
                         const avgMoodValue = payload[1]?.value;
@@ -746,7 +774,16 @@ const AnalyticsDashboard = () => {
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-neutral-900">Activity Heatmap (28 days)</h3>
-            <Calendar className="h-5 w-5 text-neutral-600" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Calendar className="h-5 w-5 text-neutral-600" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Heatmap of total responses per day for the last 28 days.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div
             className="grid"
@@ -792,7 +829,16 @@ const AnalyticsDashboard = () => {
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-neutral-900">Mood by Shift</h3>
-            <BarChart3 className="h-5 w-5 text-neutral-600" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <BarChart3 className="h-5 w-5 text-neutral-600" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Stacked counts of moods for start vs end shift responses.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -816,7 +862,16 @@ const AnalyticsDashboard = () => {
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-neutral-900">Top Facilities by Responses</h3>
-            <Users className="h-5 w-5 text-neutral-600" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Users className="h-5 w-5 text-neutral-600" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Facilities in scope ranked by number of responses.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {leaderboard.length === 0 ? (
             <div className="text-neutral-600 text-sm">No data in current scope.</div>

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Sun, Moon, LogOut, Check } from 'lucide-react';
+import { Sun, Moon, LogOut, Check, Flame } from 'lucide-react';
 
 const UserDashboard = () => {
-  const { user, logout, getSurveyCompletionStatus } = useAuth();
+  const { user, logout, getSurveyCompletionStatus, getContinuousDaysCount } = useAuth();
   const [surveyStatus, setSurveyStatus] = useState({ start: false, end: false });
+  const [continuousDays, setContinuousDays] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
@@ -17,9 +18,9 @@ const UserDashboard = () => {
     }
   };
 
-  // Fetch survey completion status for today
+  // Fetch survey completion status for today and continuous days count
   useEffect(() => {
-    const fetchSurveyStatus = async () => {
+    const fetchSurveyData = async () => {
       if (!user?.uid) {
         setLoading(false);
         return;
@@ -27,17 +28,21 @@ const UserDashboard = () => {
 
       try {
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        const status = await getSurveyCompletionStatus(user.uid, today);
+        const [status, continuousDaysCount] = await Promise.all([
+          getSurveyCompletionStatus(user.uid, today),
+          getContinuousDaysCount(user.uid)
+        ]);
         setSurveyStatus(status);
+        setContinuousDays(continuousDaysCount);
       } catch (error) {
-        console.error('Error fetching survey status:', error);
+        console.error('Error fetching survey data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSurveyStatus();
-  }, [user?.uid, getSurveyCompletionStatus]);
+    fetchSurveyData();
+  }, [user?.uid, getSurveyCompletionStatus, getContinuousDaysCount]);
   // Get current day of week and date
   const getDayOfWeek = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
@@ -145,9 +150,31 @@ const UserDashboard = () => {
           </div>
 
           {/* Greeting */}
-          <h1 className="text-h1 text-neutral-900 mb-8">
+          <h1 className="text-h1 text-neutral-900 mb-6">
             {getGreeting()}, {getFirstName()}!
           </h1>
+
+          {/* Continuous Days Counter */}
+          {continuousDays > 0 && (
+            <div className="mb-8">
+              <Card className="bg-gradient-to-r from-brand-red-600 to-brand-red-700 text-white rounded-3xl p-6 shadow-2xl max-w-sm mx-auto border border-brand-red-500/20">
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <Flame className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-h1 font-bold text-white">{continuousDays}</div>
+                    <div className="text-caption text-white/90 tracking-wide">
+                      {continuousDays === 1 ? 'DAY' : 'DAYS'} STREAK
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center mt-3 text-caption text-white/80 tracking-wider">
+                  Both surveys completed daily
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Calendar */}
           <div className="bg-neutral-100/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-neutral-200 max-w-md mx-auto">
