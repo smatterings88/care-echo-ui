@@ -46,6 +46,7 @@ const UserCheckin = () => {
   const [selectedUser, setSelectedUser] = useState<UserSurveyStats | null>(null);
   const [userSurveyLogs, setUserSurveyLogs] = useState<SurveyLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const showMoodTrend = false;
 
   // Normalize Firestore Timestamp/Date/string to Date
   const getSurveyDate = (survey: any): Date | null => {
@@ -298,6 +299,14 @@ const UserCheckin = () => {
     }
   };
 
+  const formatTime = (date: Date) => {
+    try {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -395,9 +404,11 @@ const UserCheckin = () => {
                       )}
                       
                       <div className="flex items-center space-x-2 mt-2">
-                        <Badge className={`text-xs ${getTrendColor(userData.recentMoodTrend)}`}>
-                          Mood trend: {userData.recentMoodTrend}
-                        </Badge>
+                        {showMoodTrend && (
+                          <Badge className={`text-xs ${getTrendColor(userData.recentMoodTrend)}`}>
+                            Mood trend: {userData.recentMoodTrend}
+                          </Badge>
+                        )}
                         <Badge variant="outline" className="text-xs">
                           {userData.userRole.replace('_', ' ')}
                         </Badge>
@@ -476,7 +487,7 @@ const UserCheckin = () => {
             {/* Survey Logs */}
             <div className="space-y-4">
               <h3 className="text-h3 text-neutral-900">Survey History</h3>
-              
+
               {userSurveyLogs.length === 0 ? (
                 <Card className="p-8 text-center rounded-2xl">
                   <Calendar className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
@@ -484,28 +495,78 @@ const UserCheckin = () => {
                   <p className="text-body text-neutral-600">This user hasn't completed any surveys yet.</p>
                 </Card>
               ) : (
-                userSurveyLogs.map((survey) => (
-                  <Card key={survey.id} className="p-6 rounded-2xl shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            survey.surveyType === 'start'
-                              ? 'border-brand-red-600 text-brand-red-700 bg-brand-red-50'
-                              : 'border-accent-teal text-accent-teal bg-accent-teal/10'
-                          }
-                        >
-                          {survey.surveyType === 'start' ? 'Start Shift' : 'End Shift'}
-                        </Badge>
-                      </div>
-                      <div className="text-caption text-neutral-500 flex items-center space-x-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{survey.completedAt.toLocaleDateString()} at {survey.completedAt.toLocaleTimeString()}</span>
-                      </div>
+                (() => {
+                  // Group logs by day for mobile-first timeline
+                  const groups = userSurveyLogs.reduce<Record<string, typeof userSurveyLogs>>( (acc, s) => {
+                    const key = s.completedAt.toLocaleDateString();
+                    if (!acc[key]) acc[key] = [] as any;
+                    acc[key].push(s);
+                    return acc;
+                  }, {});
+                  const orderedDays = Object.keys(groups);
+                  return (
+                    <div className="space-y-6">
+                      {orderedDays.map((day) => (
+                        <div key={day} className="">
+                          <div className="sticky top-16 z-0 bg-neutral-50/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-50/60 border border-neutral-200 text-caption text-neutral-600 inline-flex px-3 py-1 rounded-full">
+                            {day}
+                          </div>
+                          <div className="mt-3 space-y-3">
+                            {groups[day].map((survey) => (
+                              <details key={survey.id} className="group">
+                                <summary className="list-none">
+                                  <Card className="p-4 sm:p-5 rounded-2xl shadow-md group-open:shadow-lg cursor-pointer">
+                                    <div className="flex items-start gap-3 sm:gap-4">
+                                      <div className={`mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0 ${survey.surveyType === 'start' ? 'bg-brand-red-600' : 'bg-accent-teal'}`}></div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-body-sm font-medium text-neutral-900">
+                                              {survey.surveyType === 'start' ? 'Start Shift' : 'End Shift'}
+                                            </span>
+                                            <span className="text-caption text-neutral-500">{formatTime(survey.completedAt)}</span>
+                                          </div>
+                                        </div>
+                                        {survey.reflection && (
+                                          <p className="mt-1 text-caption text-neutral-600 line-clamp-2 sm:line-clamp-1">
+                                            {survey.reflection}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <svg className="mt-1 h-5 w-5 text-neutral-400 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.085l3.71-3.854a.75.75 0 011.08 1.04l-4.24 4.4a.75.75 0 01-1.08 0l-4.24-4.4a.75.75 0 01.02-1.06z" clipRule="evenodd"/></svg>
+                                    </div>
+                                  </Card>
+                                </summary>
+                                <div className="px-1 sm:px-2">
+                                  <Card className="mt-2 p-4 sm:p-5 rounded-2xl border-dashed">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div>
+                                        <div className="text-caption text-neutral-500">Time</div>
+                                        <div className="text-body-sm text-neutral-900 flex items-center gap-1"><Clock className="h-4 w-4" />{survey.completedAt.toLocaleString()}</div>
+                                      </div>
+                                      {survey.responses?.mainConcern && (
+                                        <div className="sm:col-span-2">
+                                          <div className="text-caption text-neutral-500">Main concern</div>
+                                          <div className="text-body-sm text-neutral-900 capitalize">{survey.responses.mainConcern}</div>
+                                        </div>
+                                      )}
+                                      {survey.reflection && (
+                                        <div className="sm:col-span-2">
+                                          <div className="text-caption text-neutral-500">Reflection</div>
+                                          <div className="text-body text-neutral-800 whitespace-pre-wrap">{survey.reflection}</div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Card>
+                                </div>
+                              </details>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </Card>
-                ))
+                  );
+                })()
               )}
             </div>
           </div>

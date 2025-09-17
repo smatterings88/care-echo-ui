@@ -215,7 +215,7 @@ const Survey = () => {
               className="w-[10rem] h-12 object-contain"
             />
           </div>
-          <h1 className="text-h3 text-neutral-900">{getSurveyTitle()}</h1>
+          {/* Title moved into content for better centering */}
           <div className="text-caption text-neutral-600">
             {currentStep}/4
           </div>
@@ -231,6 +231,10 @@ const Survey = () => {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-2xl">
+        {/* Centered Survey Title */}
+        <div className="text-center mb-6">
+          <h1 className="text-h2 text-neutral-900">{getSurveyTitle()}</h1>
+        </div>
         {/* Step 1: Mood Check */}
         {currentStep === 1 && (
           <Card className="card-interactive p-8 animate-fade-in rounded-3xl shadow-2xl">

@@ -246,7 +246,7 @@ const AnalyticsDashboard = () => {
     count: countsByDay[buildDateKey(d)] || 0,
   }));
 
-  // 2) Stacked mood-by-shift chart
+  // 2) Stacked mood-by-shift chart (100% stacked with percentages)
   const moods = ['great', 'okay', 'tired', 'stressed', 'overwhelmed'] as const;
   const moodByShiftBase = { start: Object.fromEntries(moods.map(m => [m, 0])) as Record<string, number>, end: Object.fromEntries(moods.map(m => [m, 0])) as Record<string, number> };
   const moodByShiftAgg = JSON.parse(JSON.stringify(moodByShiftBase)) as typeof moodByShiftBase;
@@ -257,10 +257,19 @@ const AnalyticsDashboard = () => {
       moodByShiftAgg[type][mood] = (moodByShiftAgg[type][mood] || 0) + 1;
     }
   });
-  const moodByShiftData = [
-    { shift: 'Start', ...moodByShiftAgg.start },
-    { shift: 'End', ...moodByShiftAgg.end },
-  ];
+  const buildMoodPieData = (counts: Record<string, number>) => {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    return moods.map((m) => ({
+      key: m,
+      name: m.charAt(0).toUpperCase() + m.slice(1),
+      value: counts[m] || 0,
+      pct: Number((((counts[m] || 0) / total) * 100).toFixed(1)),
+      color: getMoodColor(m),
+      total,
+    }));
+  };
+  const moodByShiftStartPie = buildMoodPieData(moodByShiftAgg.start);
+  const moodByShiftEndPie = buildMoodPieData(moodByShiftAgg.end);
 
   // 3) Facility response leaderboard (scoped)
   const nameById: Record<string, string> = Object.fromEntries(agencies.map(a => [a.id, a.name]));
@@ -825,7 +834,7 @@ const AnalyticsDashboard = () => {
         </Card>
         )}
 
-        {/* 2) Stacked Mood by Shift */}
+        {/* 2) Mood by Shift (Pie charts) */}
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-neutral-900">Mood by Shift</h3>
@@ -835,26 +844,66 @@ const AnalyticsDashboard = () => {
                   <BarChart3 className="h-5 w-5 text-neutral-600" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  Stacked counts of moods for start vs end shift responses.
+                  Mood distribution for start vs end shift responses.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={moodByShiftData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="shift" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="great" stackId="a" fill="#10b981" name="Great" />
-                <Bar dataKey="okay" stackId="a" fill="#3b82f6" name="Okay" />
-                <Bar dataKey="tired" stackId="a" fill="#f59e0b" name="Tired" />
-                <Bar dataKey="stressed" stackId="a" fill="#f97316" name="Stressed" />
-                <Bar dataKey="overwhelmed" stackId="a" fill="#ef4444" name="Overwhelmed" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Start Shift Pie */}
+            <div className="h-80">
+              <div className="text-center text-sm text-neutral-700 mb-2">Start Shift</div>
+              <ResponsiveContainer width="100%" height="90%">
+                <RechartsPieChart>
+                  <Pie data={moodByShiftStartPie} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                    {moodByShiftStartPie.map((entry, index) => (
+                      <Cell key={`start-cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d: any = payload[0].payload;
+                      return (
+                        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg text-sm">
+                          <div className="font-semibold mb-1">Start Shift</div>
+                          <div className="flex items-center justify-between"><span>{d.name}</span><span className="font-medium">{d.value} · {d.pct}%</span></div>
+                          <div className="mt-1 text-neutral-600">Total: {d.total}</div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }} />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+            {/* End Shift Pie */}
+            <div className="h-80">
+              <div className="text-center text-sm text-neutral-700 mb-2">End Shift</div>
+              <ResponsiveContainer width="100%" height="90%">
+                <RechartsPieChart>
+                  <Pie data={moodByShiftEndPie} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                    {moodByShiftEndPie.map((entry, index) => (
+                      <Cell key={`end-cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d: any = payload[0].payload;
+                      return (
+                        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg text-sm">
+                          <div className="font-semibold mb-1">End Shift</div>
+                          <div className="flex items-center justify-between"><span>{d.name}</span><span className="font-medium">{d.value} · {d.pct}%</span></div>
+                          <div className="mt-1 text-neutral-600">Total: {d.total}</div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }} />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </Card>
 
