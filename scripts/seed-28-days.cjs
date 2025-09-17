@@ -41,6 +41,32 @@ async function seedUser(uid, displayName, withSkips = false, userAgencyId = null
   const start = new Date();
   start.setDate(end.getDate() - 27);
 
+  const startSupportPhrases = [
+    "Looking forward to teamwork today",
+    "A quiet moment before rounds helps",
+    "Coffee and a supportive colleague",
+    "Clear plan boosts my energy",
+    "Encouragement from my supervisor",
+    "Knowing staffing is solid",
+    "A friendly handoff sets the tone",
+    "Taking deep breaths and focusing",
+    "Positive feedback from families",
+    "Feeling prepared after huddle"
+  ];
+  const endSupportPhrases = [
+    "Grateful for my team's support",
+    "A resident's thank you meant a lot",
+    "Short break helped me reset",
+    "Got help when unit got busy",
+    "Encouraging words from charge nurse",
+    "Small wins kept me going",
+    "Good communication on the floor",
+    "Colleague covered so I could hydrate",
+    "Families were kind today",
+    "Wrapped up with a sense of progress"
+  ];
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
   // Choose 3 skip indices for withSkips
   const skipIdx = new Set();
   if (withSkips) {
@@ -78,7 +104,10 @@ async function seedUser(uid, displayName, withSkips = false, userAgencyId = null
         completedAt: admin.firestore.Timestamp.fromDate(d),
         agencyId: userAgencyId,
         userRole: 'user',
-        responses: { mood: ['great','okay','tired','stressed','overwhelmed'][Math.floor(Math.random()*5)] },
+        responses: { 
+          mood: ['great','okay','tired','stressed','overwhelmed'][Math.floor(Math.random()*5)],
+          support: pick(startSupportPhrases)
+        },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       const endRef = db.collection('surveys').doc();
@@ -90,7 +119,10 @@ async function seedUser(uid, displayName, withSkips = false, userAgencyId = null
         completedAt: admin.firestore.Timestamp.fromDate(d),
         agencyId: userAgencyId,
         userRole: 'user',
-        responses: { mood: ['great','okay','tired','stressed','overwhelmed'][Math.floor(Math.random()*5)] },
+        responses: { 
+          mood: ['great','okay','tired','stressed','overwhelmed'][Math.floor(Math.random()*5)],
+          support: pick(endSupportPhrases)
+        },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }

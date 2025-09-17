@@ -20,7 +20,8 @@ import {
   Smile,
   Meh,
   Frown,
-  Building2
+  Building2,
+  ChevronDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import md5 from "crypto-js/md5";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ChartContainer,
   ChartTooltip,
@@ -185,6 +188,20 @@ const AnalyticsDashboard = () => {
     return colors[mood] || "#6b7280";
   };
 
+  // Gravatar helpers to match Header dropdown styling
+  const getGravatarUrl = (email: string) => {
+    const hash = md5((email || '').toLowerCase().trim()).toString();
+    return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
+  };
+  const getUserInitials = (displayName: string) => {
+    return (displayName || '')
+      .split(' ')
+      .map(n => n.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const getConcernColor = (concern: string) => {
     const colors: Record<string, string> = {
       'Resident grief or decline': "#8b5cf6", // violet-500
@@ -283,6 +300,55 @@ const AnalyticsDashboard = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // 4) Support & Energy (Q3) analysis: keywords and sentiment
+  const STOP_WORDS = new Set<string>([
+    'the','and','for','with','that','this','have','has','had','but','you','your','our','are','was','were','from','into','about','after','before','than','then','they','them','their','there','here','just','like','really','very','able','cant','can','could','would','should','a','an','to','of','in','on','at','by','as','is','it','or','be','we','i','me','my','mine','he','she','his','her','hers','its','too','so','if','not','no','yes','do','did','does','doing','over','out','up','down','more','most','less','least'
+  ]);
+  const tokenize = (text: string) => (text || '')
+    .toLowerCase()
+    .split(/[^a-z]+/g)
+    .filter(Boolean)
+    .filter(w => !STOP_WORDS.has(w) && w.length >= 3);
+
+  const supportTexts = responsesRaw
+    .map(r => ({ type: r.surveyType, text: r.responses?.support || '' }))
+    .filter(item => (item.text || '').trim().length > 0);
+
+  // Keyword frequencies (combined)
+  const freq: Record<string, number> = {};
+  supportTexts.forEach(({ text }) => {
+    const tokens = tokenize(text);
+    tokens.forEach(t => { freq[t] = (freq[t] || 0) + 1; });
+  });
+  const topKeywords = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, value]) => ({ name, value }));
+
+  // Simple sentiment lexicon and scoring
+  const SENTIMENT: Record<string, number> = {
+    good: 2, great: 3, positive: 2, helpful: 2, support: 1, supported: 2, energy: 1, energized: 2, calm: 2, peaceful: 2, thankful: 2, appreciated: 2, smile: 1, kindness: 2, kind: 2, happy: 2, grateful: 3, relief: 2,
+    bad: -2, tired: -1, stressed: -2, overwhelmed: -3, upset: -2, sad: -2, angry: -2, frustrated: -2, pressure: -1, anxious: -2, anxiety: -2, drain: -1, drained: -2, exhausted: -2, conflict: -2, issue: -1, problems: -1
+  };
+  const scoreText = (text: string) => tokenize(text).reduce((sum, w) => sum + (SENTIMENT[w] || 0), 0);
+  const sentimentAgg = supportTexts.reduce(
+    (acc, item) => {
+      const score = scoreText(item.text);
+      if (item.type === 'start') {
+        acc.start.total += 1;
+        acc.start.sum += score;
+        if (score > 0) acc.start.pos += 1; else if (score < 0) acc.start.neg += 1; else acc.start.neu += 1;
+      } else if (item.type === 'end') {
+        acc.end.total += 1;
+        acc.end.sum += score;
+        if (score > 0) acc.end.pos += 1; else if (score < 0) acc.end.neg += 1; else acc.end.neu += 1;
+      }
+      return acc;
+    },
+    { start: { total: 0, sum: 0, pos: 0, neg: 0, neu: 0 }, end: { total: 0, sum: 0, pos: 0, neg: 0, neu: 0 } }
+  );
+  const fmtPct = (num: number, den: number) => (den ? Math.round((num / den) * 100) : 0);
+
 
   if (loading) {
     return (
@@ -333,33 +399,39 @@ const AnalyticsDashboard = () => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-2 py-1 flex items-center space-x-2 hover:bg-neutral-100"
+                  <Button 
+                    variant="ghost" 
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-neutral-100 cursor-pointer border border-transparent hover:border-neutral-300"
                   >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>
-                        {(user.displayName || '').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={getGravatarUrl(user.email)} alt={user.displayName} />
+                      <AvatarFallback className="bg-accent-teal text-white text-sm font-medium">
+                        {getUserInitials(user.displayName)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline">{user.displayName}</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    <div className="hidden md:flex flex-col items-start">
+                      <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                         user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
                         user.role === 'org_admin' ? 'bg-purple-600 text-white' :
                         user.role === 'site_admin' ? 'bg-accent-teal text-white' :
                         'bg-neutral-200 text-neutral-700'
-                      }`}
-                    >
-                      {user.role === 'super_admin' ? 'Super Admin' :
-                       user.role === 'org_admin' ? 'Org Admin' :
-                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
-                    </span>
+                      }`}>
+                        {user.role === 'super_admin' ? 'Super Admin' :
+                         user.role === 'org_admin' ? 'Org Admin' :
+                         user.role === 'site_admin' ? 'Site Admin' :
+                         'User'}
+                      </span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-neutral-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent 
+                  className="w-56 z-50 bg-white border border-neutral-200 shadow-lg" 
+                  align="end" 
+                  side="bottom" 
+                  alignOffset={5}
+                >
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.displayName}</p>
@@ -368,14 +440,12 @@ const AnalyticsDashboard = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem disabled>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
-                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
-                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
-                        'bg-neutral-200 text-neutral-700'
-                      }`}
-                    >
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                      user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                      user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                      'bg-neutral-200 text-neutral-700'
+                    }`}>
                       {user.role === 'super_admin' ? 'Super Admin' :
                        user.role === 'org_admin' ? 'Org Admin' :
                        user.role === 'site_admin' ? 'Site Admin' : 'User'}
@@ -945,6 +1015,125 @@ const AnalyticsDashboard = () => {
             </div>
           )}
         </Card>
+
+        {/* 4) Support & Energy Sentiment Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <Card className="p-6 lg:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-neutral-900">Support & Energy Sentiment</h3>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="text-xs text-accent-teal underline underline-offset-2 hover:text-accent-teal/80">How is this calculated?</button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Support & Energy Sentiment</DialogTitle>
+                    <DialogDescription>
+                      We tokenize replies, remove common stop-words, and score remaining words with a small sentiment lexicon (positive words add points, negative words subtract). We then aggregate per shift:
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="text-sm text-neutral-700 space-y-2">
+                    <ul className="list-disc pl-5">
+                      <li>Avg score: average sentiment score across all replies</li>
+                      <li>+ / 0 / −: counts and percentages of positive, neutral, and negative replies</li>
+                      <li>Total: number of Q3 replies in scope</li>
+                    </ul>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Graphical bars */}
+            <div className="space-y-4">
+              {(() => {
+                const startTotal = sentimentAgg.start.total || 0;
+                const endTotal = sentimentAgg.end.total || 0;
+                const startPosPct = fmtPct(sentimentAgg.start.pos, startTotal);
+                const startNeuPct = fmtPct(sentimentAgg.start.neu, startTotal);
+                const startNegPct = fmtPct(sentimentAgg.start.neg, startTotal);
+                const endPosPct = fmtPct(sentimentAgg.end.pos, endTotal);
+                const endNeuPct = fmtPct(sentimentAgg.end.neu, endTotal);
+                const endNegPct = fmtPct(sentimentAgg.end.neg, endTotal);
+                const bar = (label: string, avg: string | number, pos: number, neu: number, neg: number, total: number) => (
+                  <div>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <div className="text-neutral-600">{label}</div>
+                      <div className="text-neutral-900 font-medium">Avg {typeof avg === 'number' ? avg.toFixed(2) : avg}</div>
+                    </div>
+                    <div className="w-full h-3 rounded-full bg-neutral-200 overflow-hidden">
+                      <div className="h-full bg-emerald-500" style={{ width: `${pos}%` }} />
+                      <div className="h-full bg-neutral-400" style={{ width: `${neu}%` }} />
+                      <div className="h-full bg-red-500" style={{ width: `${neg}%` }} />
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-xs text-neutral-600">
+                      <span className="text-emerald-600">+ {pos}%</span>
+                      <span className="text-neutral-500">0 {neu}%</span>
+                      <span className="text-red-600">− {neg}%</span>
+                      <span className="text-neutral-500">Total: {total}</span>
+                    </div>
+                  </div>
+                );
+                return (
+                  <>
+                    {bar('Start Shift', sentimentAgg.start.total ? (sentimentAgg.start.sum / sentimentAgg.start.total) : '—', startPosPct, startNeuPct, startNegPct, startTotal)}
+                    {bar('End Shift', sentimentAgg.end.total ? (sentimentAgg.end.sum / sentimentAgg.end.total) : '—', endPosPct, endNeuPct, endNegPct, endTotal)}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="mt-4 flex items-center gap-4 text-xs text-neutral-600">
+              <div className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-sm"></span> Positive</div>
+              <div className="flex items-center gap-1"><span className="w-3 h-3 bg-neutral-400 rounded-sm"></span> Neutral</div>
+              <div className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded-sm"></span> Negative</div>
+            </div>
+          </Card>
+
+          {/* 5) Top Keywords from Support & Energy */}
+          <Card className="p-6 lg:col-span-2">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-neutral-900">Top Phrases / Keywords</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <BarChart3 className="h-5 w-5 text-neutral-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Extracted from Support & Energy with stop-word filtering.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            {topKeywords.length === 0 ? (
+              <div className="text-neutral-600 text-sm">No Support & Energy text in current scope.</div>
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topKeywords} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="name" stroke="#6b7280" fontSize={12} interval={0} angle={-25} textAnchor="end" height={60} />
+                    <YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} />
+                    <RechartsTooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const d = payload[0].payload as any;
+                          return (
+                            <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg text-sm">
+                              <div className="font-semibold mb-1">{d.name}</div>
+                              <div className="text-neutral-600">Mentions: <span className="font-medium">{d.value}</span></div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[4,4,0,0]} fill="#ef4444" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        </div>
 
       </div>
     </div>

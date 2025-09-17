@@ -50,8 +50,10 @@ import {
   UserCheck,
   UserX,
   UploadCloud,
-  Edit3
+  Edit3,
+  ChevronDown
 } from "lucide-react";
+import md5 from "crypto-js/md5";
 import { UserData, UserRole, AgencyData, CreateUserData, CreateAgencyData } from "@/types/auth";
 import { getTimeZones } from "@vvo/tzdb";
 
@@ -78,6 +80,12 @@ const AdminDashboard = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('all');
   const [showCreateUser, setShowCreateUser] = useState(false);
+
+  // Gravatar helpers to align dropdown avatar with landing/header style
+  const getGravatarUrl = (email: string) => {
+    const hash = md5((email || '').toLowerCase().trim()).toString();
+    return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
+  };
   const [showCreateAgency, setShowCreateAgency] = useState(false);
   const [showCreateAgencyFromUser, setShowCreateAgencyFromUser] = useState(false);
   const [agencyUserCounts, setAgencyUserCounts] = useState<Record<string, number>>({});
@@ -576,31 +584,38 @@ const AdminDashboard = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-9 px-2 py-1 flex items-center space-x-2 hover:bg-neutral-100"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-neutral-100 cursor-pointer border border-transparent hover:border-neutral-300"
                   >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={getGravatarUrl(user.email)} alt={user.displayName} />
+                      <AvatarFallback className="bg-accent-teal text-white text-sm font-medium">
                         {(user.displayName || '').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline">{user.displayName}</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
-                        user.role === 'org_admin' ? 'bg-purple-600 text-white' :
-                        user.role === 'site_admin' ? 'bg-accent-teal text-white' :
-                        'bg-neutral-200 text-neutral-700'
-                      }`}
-                    >
-                      {user.role === 'super_admin' ? 'Super Admin' :
-                       user.role === 'org_admin' ? 'Org Admin' :
-                       user.role === 'site_admin' ? 'Site Admin' : 'User'}
-                    </span>
+                    <div className="hidden md:flex flex-col items-start">
+                      <span className="text-sm font-medium text-neutral-900">{user.displayName}</span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          user.role === 'super_admin' ? 'bg-brand-red-600 text-white' :
+                          user.role === 'org_admin' ? 'bg-purple-600 text-white' :
+                          user.role === 'site_admin' ? 'bg-accent-teal text-white' :
+                          'bg-neutral-200 text-neutral-700'
+                        }`}
+                      >
+                        {user.role === 'super_admin' ? 'Super Admin' :
+                         user.role === 'org_admin' ? 'Org Admin' :
+                         user.role === 'site_admin' ? 'Site Admin' : 'User'}
+                      </span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-neutral-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent 
+                  className="w-56 z-50 bg-white border border-neutral-200 shadow-lg" 
+                  align="end" 
+                  side="bottom" 
+                  alignOffset={5}
+                >
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.displayName}</p>
